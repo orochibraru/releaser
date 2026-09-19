@@ -31,11 +31,21 @@ in a file other than `package.json`, `build.sh` bumps it and `commit` adds it
 (and its lockfile) to the release commit. Where it doesn't (Go, Java, Kotlin,
 C), the version is stamped in at build time and the tag is the only record.
 
-[`tests/integration/lang_examples_test.go`](../tests/integration/lang_examples_test.go)
-releases every folder above with exactly these settings, against a local git
-remote and a fake GitHub API, through the commit history in
-[`release_steps_test.go`](../tests/integration/release_steps_test.go). It checks
-the four releases, their assets, the manifest ending at `2.0.0`, and that the
-build leaves nothing uncommitted outside `.gitignore`. Locally, examples whose
-toolchain isn't installed are skipped; in CI (`CI` set) that's a failure, so
-every example runs there. All of them are skipped with `-short`.
+The [Examples workflow](../.github/workflows/examples.yml) releases every folder
+above with exactly these settings, one job per example. It builds releaser from
+the current commit, makes the folder a fresh repo with a local git remote and a
+[fake GitHub API](../tests/fakegithub/main.go), then plays the same history as
+the integration tests, one step per commit:
+
+| Commit                        | Release    |
+| ----------------------------- | ---------- |
+| `feat: hello`                 | `v1.0.0`   |
+| `fix(build): smaller archive` | `v1.0.1`   |
+| `feat: greet by name`         | `v1.1.0`   |
+| `chore: tidy`                 | no release |
+| `feat!: new greeting format`  | `v2.0.0`   |
+
+It then checks the four tags, every uploaded asset (or, for Docker, the image
+tags in a throwaway registry), the manifest ending at `2.0.0`, and that the
+build left nothing uncommitted outside `.gitignore`. Each job's summary shows
+the resulting `CHANGELOG.md`.

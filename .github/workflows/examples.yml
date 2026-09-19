@@ -1,0 +1,131 @@
+name: Examples
+
+# Releases every examples/<name> the way a user's repo would: releaser built from this commit, run
+# through a conventional-commit history, one step per release. Git goes to a local remote and the
+# GitHub API to tests/fakegithub, so nothing is published.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  release:
+    name: ${{ matrix.example }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # asset: the file uploaded for each release, VERSION replaced. manifest: must end at 2.0.0.
+        include:
+          - example: python
+            artifacts: dist/*.whl
+            commit: pyproject.toml
+            asset: hello-VERSION-py3-none-any.whl
+            manifest: pyproject.toml
+          - example: go
+            artifacts: dist/*
+            asset: hello-VERSION-linux-amd64
+          - example: typescript
+            artifacts: dist/*.tgz
+            commit: package-lock.json
+            asset: hello-ts-VERSION.tgz
+            manifest: package-lock.json
+          - example: javascript
+            artifacts: dist/*.tgz
+            asset: hello-js-VERSION.tgz
+            manifest: package.json
+          - example: rust
+            artifacts: dist/hello.tar.gz=hello-${version}.tar.gz
+            commit: Cargo.toml,Cargo.lock
+            asset: hello-VERSION.tar.gz
+            manifest: Cargo.lock
+          - example: java
+            artifacts: dist/hello.jar=hello-${version}.jar
+            asset: hello-VERSION.jar
+          - example: kotlin
+            artifacts: dist/hello.jar=hello-${version}.jar
+            asset: hello-VERSION.jar
+          - example: c
+            artifacts: dist/hello.tar.gz=hello-${version}.tar.gz
+            asset: hello-VERSION.tar.gz
+          - example: bun
+            artifacts: dist/hello=hello-${version}
+            asset: hello-VERSION
+            manifest: package.json
+          - example: artifact
+            artifacts: dist/hello.tar.gz=hello-${version}.tar.gz
+            asset: hello-VERSION.tar.gz
+            manifest: package.json
+          - example: docker
+            prepare: ""
+            flags: -docker -docker-image localhost:5000/hello
+    env:
+      RELEASER: /tmp/releaser
+      RELEASE: ${{ github.workspace }}/.github/scripts/release-example.sh
+      ARTIFACTS: ${{ matrix.artifacts }}
+      COMMIT: ${{ matrix.commit }}
+      PREPARE: ${{ matrix.prepare == null && './build.sh ${version}' || matrix.prepare }}
+      FLAGS: ${{ matrix.flags }}
+    defaults:
+      run:
+        working-directory: /tmp/example
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - if: matrix.example == 'bun'
+        uses: oven-sh/setup-bun@v2
+      - if: matrix.example == 'docker'
+        working-directory: .
+        run: docker run -d -p 5000:5000 registry:3
+
+      - name: Build releaser, start the fake GitHub, create the example repo
+        working-directory: .
+        run: |
+          go build -o "$RELEASER" ./cmd
+          go build -o /tmp/fakegithub ./tests/fakegithub
+          /tmp/fakegithub -addr 127.0.0.1:8080 -dir /tmp/github > /tmp/fakegithub.log 2>&1 &
+          cp -r examples/${{ matrix.example }} /tmp/example
+          git init -q --bare -b main /tmp/remote.git
+          cd /tmp/example
+          git init -q -b main
+          git remote add origin /tmp/remote.git
+          git add .
+          curl -s --retry 10 --retry-connrefused -o /dev/null http://127.0.0.1:8080/
+
+      - name: "feat: hello → v1.0.0"
+        run: '$RELEASE v1.0.0 "feat: hello"'
+      - name: "fix(build): smaller archive → v1.0.1"
+        run: '$RELEASE v1.0.1 "fix(build): smaller archive"'
+      - name: "feat: greet by name → v1.1.0"
+        run: '$RELEASE v1.1.0 "feat: greet by name"'
+      - name: "chore: tidy → no release"
+        run: '$RELEASE none "chore: tidy"'
+      - name: "feat!: new greeting format → v2.0.0"
+        run: '$RELEASE v2.0.0 "feat!: new greeting format" "BREAKING CHANGE: greetings are now uppercase"'
+
+      - name: Check tags, uploads, manifest, clean tree
+        if: matrix.asset
+        env:
+          ASSET: ${{ matrix.asset }}
+          MANIFEST: ${{ matrix.manifest }}
+        run: |
+          test "$(git -C /tmp/remote.git tag | xargs)" = "v1.0.0 v1.0.1 v1.1.0 v2.0.0"
+          for version in 1.0.0 1.0.1 1.1.0 2.0.0; do
+            test -f "/tmp/github/v$version.json"
+            test -s "/tmp/github/assets/${ASSET//VERSION/$version}" || { ls /tmp/github/assets; exit 1; }
+          done
+          [ -z "$MANIFEST" ] || grep -q '2.0.0"' "$MANIFEST"
+          grep -q '^## \[2.0.0\]' CHANGELOG.md
+          test -z "$(git status --porcelain)" || { git status --short; exit 1; }
+          cat CHANGELOG.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check the pushed image tags
+        if: matrix.example == 'docker'
+        run: |
+          test "$(git -C /tmp/remote.git tag | xargs)" = "v1.0.0 v1.0.1 v1.1.0 v2.0.0"
+          curl -fsS http://localhost:5000/v2/hello/tags/list | tee /dev/stderr |
+            grep -q '"tags":\["1.0.0","1.0.1","1.1.0","2.0.0","latest"\]'
+          test -z "$(git status --porcelain)" || { git status --short; exit 1; }
+          cat CHANGELOG.md >> "$GITHUB_STEP_SUMMARY"

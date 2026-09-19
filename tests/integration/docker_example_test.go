@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"cmp"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -31,7 +32,7 @@ func TestDockerExample(t *testing.T) {
 
 	r := newRepo(t, "../../examples/docker")
 	// Keep the real docker config: buildx and the daemon context live there.
-	r.env = append(r.env, "DOCKER_CONFIG="+cmpOr(os.Getenv("DOCKER_CONFIG"), filepath.Join(os.Getenv("HOME"), ".docker")))
+	r.env = append(r.env, "DOCKER_CONFIG="+cmp.Or(os.Getenv("DOCKER_CONFIG"), filepath.Join(os.Getenv("HOME"), ".docker")))
 	releaseSteps(t, r, "-docker", "-docker-image", "localhost:"+port+"/example")
 	checkChangelog(t, r)
 
@@ -70,11 +71,4 @@ func waitFor(t *testing.T, url string) {
 		time.Sleep(200 * time.Millisecond)
 	}
 	t.Fatalf("%s never came up", url)
-}
-
-func cmpOr(a, b string) string {
-	if a != "" {
-		return a
-	}
-	return b
 }
