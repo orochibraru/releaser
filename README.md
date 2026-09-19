@@ -38,8 +38,8 @@ jobs:
 - [Docker mode](docs/docker.md)
 - [Architecture](docs/architecture.md)
 
-Runnable examples: [artifact mode](examples/artifact),
-[docker mode](examples/docker).
+Runnable [examples](examples): Python, Go, TypeScript, JavaScript, Rust, Java,
+Kotlin, C, Bun, and Docker mode.
 
 ## Development
 

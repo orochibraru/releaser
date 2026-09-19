@@ -25,4 +25,5 @@ needs `contents: write`.
 
 Artifact mode and [Docker mode](docker.md) can be enabled together.
 
-A runnable example lives in [`examples/artifact`](../examples/artifact).
+Runnable examples for Python, Go, TypeScript, JavaScript, Rust, Java, Kotlin, C
+and Bun live in [`examples`](../examples).

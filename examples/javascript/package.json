@@ -1,0 +1,6 @@
+{
+	"name": "hello-js",
+	"version": "0.0.0",
+	"bin": { "hello-js": "hello.js" },
+	"files": ["hello.js"]
+}

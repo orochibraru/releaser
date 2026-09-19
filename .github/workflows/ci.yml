@@ -15,7 +15,7 @@ jobs:
           go-version-file: go.mod
       - uses: j178/prek-action@v3.0.0
 
-  # Full suite, including the Docker example (prek runs it with -short).
+  # Full suite, including the Docker and language examples (prek runs it with -short).
   test:
     runs-on: ubuntu-latest
     steps:
@@ -23,6 +23,7 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
+      - uses: oven-sh/setup-bun@v2 # the rest of the example toolchains are preinstalled
       - run: go test ./...
 
   # Dogfood: releaser releases itself with artifact mode.

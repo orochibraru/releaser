@@ -1,0 +1,9 @@
+{
+	"name": "hello-ts",
+	"version": "0.0.0",
+	"type": "module",
+	"bin": { "hello-ts": "dist/hello.js" },
+	"files": ["dist/hello.js"],
+	"scripts": { "build": "tsc" },
+	"devDependencies": { "typescript": "^5" }
+}
