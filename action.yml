@@ -1,0 +1,82 @@
+name: Releaser
+description: semantic-release without the plugins. Version, CHANGELOG, tag, GitHub release, artifacts and Docker image.
+author: orochibraru
+branding:
+  icon: tag
+  color: purple
+
+inputs:
+  branch:
+    description: Branch to release from.
+    default: main
+  rules:
+    description: "Bump overrides, e.g. breaking=patch,feat=patch. Defaults: breaking=major, feat=minor, fix/perf/revert=patch."
+    default: ""
+  prepare:
+    description: Shell command run before the release commit. ${version} is replaced with the new version.
+    default: ""
+  commit:
+    description: Extra files for the release commit (comma separated). CHANGELOG.md and package.json are always included.
+    default: ""
+  artifacts:
+    description: "Artifact mode: files to attach to the GitHub release, one per line or comma separated, as path[=name]. Globs and ${version} work."
+    default: ""
+  docker:
+    description: "Docker mode: build ./Dockerfile and push <image>:<version> and <image>:latest."
+    default: "false"
+  docker-image:
+    description: Image name. Defaults to ghcr.io/<owner>/<repo>.
+    default: ""
+  docker-platforms:
+    description: Build platforms, e.g. linux/amd64,linux/arm64 (needs docker/setup-qemu-action and docker/setup-buildx-action).
+    default: ""
+  dry-run:
+    description: Only print the next release.
+    default: "false"
+  token:
+    description: Token for the GitHub release, asset uploads and ghcr.io login.
+    default: ${{ github.token }}
+
+outputs:
+  released:
+    description: '"true" if a release was made.'
+    value: ${{ steps.release.outputs.released }}
+  version:
+    description: The released version, e.g. 1.2.3.
+    value: ${{ steps.release.outputs.version }}
+  tag:
+    description: The released tag, e.g. v1.2.3.
+    value: ${{ steps.release.outputs.tag }}
+
+runs:
+  using: composite
+  steps:
+    - id: release
+      shell: bash
+      env:
+        # Bumped by this repo's own release (see .github/workflows/ci.yml).
+        RELEASER_VERSION: "0.0.0"
+        GITHUB_TOKEN: ${{ inputs.token }}
+        IN_BRANCH: ${{ inputs.branch }}
+        IN_RULES: ${{ inputs.rules }}
+        IN_PREPARE: ${{ inputs.prepare }}
+        IN_COMMIT: ${{ inputs.commit }}
+        IN_ARTIFACTS: ${{ inputs.artifacts }}
+        IN_DOCKER: ${{ inputs.docker }}
+        IN_DOCKER_IMAGE: ${{ inputs.docker-image }}
+        IN_DOCKER_PLATFORMS: ${{ inputs.docker-platforms }}
+        IN_DRY_RUN: ${{ inputs.dry-run }}
+      run: |
+        set -euo pipefail
+        os=$(tr '[:upper:]' '[:lower:]' <<< "$RUNNER_OS"); [ "$os" = macos ] && os=darwin
+        arch=$(tr '[:upper:]' '[:lower:]' <<< "$RUNNER_ARCH"); [ "$arch" = x64 ] && arch=amd64
+        bin="$RUNNER_TEMP/releaser"
+        url="https://github.com/orochibraru/releaser/releases/download/v$RELEASER_VERSION/releaser-$os-$arch"
+        if ! curl -fsSL -o "$bin" "$url"; then
+          echo "::notice::no prebuilt releaser v$RELEASER_VERSION for $os/$arch, building from source"
+          (cd "$GITHUB_ACTION_PATH" && go build -o "$bin" ./cmd)
+        fi
+        chmod +x "$bin"
+        "$bin" -branch "$IN_BRANCH" -rules "$IN_RULES" -prepare "$IN_PREPARE" -commit "$IN_COMMIT" \
+          -artifacts "$IN_ARTIFACTS" -docker="$IN_DOCKER" -docker-image "$IN_DOCKER_IMAGE" \
+          -docker-platforms "$IN_DOCKER_PLATFORMS" -dry-run="$IN_DRY_RUN"
