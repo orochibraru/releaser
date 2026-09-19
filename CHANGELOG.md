@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0](https://github.com/orochibraru/releaser/compare/v1.1.0...v1.2.0) (2026-09-19)
+
+### Features
+
+* run sample releases on all projects ([4c38835](https://github.com/orochibraru/releaser/commit/4c38835ce78f14662bdaa8ea60b396e429afc716))
+* run examples in ci ([95fd7a9](https://github.com/orochibraru/releaser/commit/95fd7a97ed5a0affa6297e59b8b98ca6cd62b079))
+* more examples ([eceedb7](https://github.com/orochibraru/releaser/commit/eceedb7ec3a5aa41fff2ea70f36f0b0706082e4f))
+
+### Bug Fixes
+
+* tests ([f1e6de2](https://github.com/orochibraru/releaser/commit/f1e6de2c7edd6bb4192cd8ab0f189450c7e48368))
+
 ## [1.1.0](https://github.com/orochibraru/releaser/compare/v1.0.0...v1.1.0) (2026-09-19)
 
 ### Features
