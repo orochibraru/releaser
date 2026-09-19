@@ -111,11 +111,13 @@ func release(o options) error {
 	if err != nil {
 		return err
 	}
+	body := notes // GitHub release body; CHANGELOG.md stays the plain notes
 	if o.docker {
 		image := cmp.Or(o.dockerImage, "ghcr.io/"+strings.ToLower(repo))
 		if err := docker.Push(image, o.dockerPlatforms, version, repoURL, token); err != nil {
 			return fmt.Errorf("docker: %w", err)
 		}
+		body += "\n### Docker\n\n```sh\ndocker pull " + image + ":" + version + "\n```\n"
 	}
 
 	// Publish.
@@ -126,7 +128,7 @@ func release(o options) error {
 	fmt.Println("pushed", tag)
 	if token == "" || repo == "" {
 		fmt.Println("no GITHUB_TOKEN or GitHub remote: skipping GitHub release")
-	} else if err := github.CreateRelease(repo, token, tag, notes, assets); err != nil {
+	} else if err := github.CreateRelease(repo, token, tag, body, assets); err != nil {
 		return fmt.Errorf("github release: %w", err)
 	}
 	return github.SetOutput("released=true", "version="+version, "tag="+tag)

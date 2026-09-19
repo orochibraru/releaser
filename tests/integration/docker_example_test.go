@@ -30,11 +30,22 @@ func TestDockerExample(t *testing.T) {
 	registry := "http://127.0.0.1:" + port
 	waitFor(t, registry+"/v2/")
 
+	gh := newFakeGitHub(t)
 	r := newRepo(t, "../../examples/docker")
+	r.env = append(r.env, gh.env()...)
 	// Keep the real docker config: buildx and the daemon context live there.
 	r.env = append(r.env, "DOCKER_CONFIG="+cmp.Or(os.Getenv("DOCKER_CONFIG"), filepath.Join(os.Getenv("HOME"), ".docker")))
 	releaseSteps(t, r, "-docker", "-docker-image", "localhost:"+port+"/example")
 	checkChangelog(t, r)
+
+	// The GitHub release tells you how to pull the image; the CHANGELOG doesn't.
+	pull := "docker pull localhost:" + port + "/example:2.0.0"
+	if body := gh.releases[len(gh.releases)-1]["body"]; !strings.Contains(body, pull) {
+		t.Errorf("release body has no %q:\n%s", pull, body)
+	}
+	if strings.Contains(r.read("CHANGELOG.md"), "docker pull") {
+		t.Error("docker pull leaked into CHANGELOG.md")
+	}
 
 	res, err := http.Get(registry + "/v2/example/tags/list")
 	if err != nil {

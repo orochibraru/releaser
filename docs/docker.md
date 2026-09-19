@@ -24,6 +24,8 @@ tags:
 
 The image gets the `org.opencontainers.image.version` and
 `org.opencontainers.image.source` labels, so GHCR links the package to the repo.
+The GitHub release gets a `docker pull <image>:X.Y.Z` block appended to its
+notes (`CHANGELOG.md` doesn't).
 
 The push happens **before** the release commit and tag, so a failed build leaves
 the repository untouched.
