@@ -58,3 +58,5 @@ Multi-platform builds need QEMU and a buildx builder:
 ```
 
 Docker mode and [artifact mode](artifacts.md) can be enabled together.
+
+A runnable example lives in [`examples/docker`](../examples/docker).

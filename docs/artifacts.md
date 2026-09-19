@@ -24,3 +24,5 @@ Uploads need a token (the action passes `github.token` by default) and the job
 needs `contents: write`.
 
 Artifact mode and [Docker mode](docker.md) can be enabled together.
+
+A runnable example lives in [`examples/artifact`](../examples/artifact).

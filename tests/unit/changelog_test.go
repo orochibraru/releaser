@@ -41,7 +41,7 @@ func TestNotes(t *testing.T) {
 }
 
 func TestPrepend(t *testing.T) {
-	if got := changelog.Prepend("", "## 1.0.0\n"); got != "# Changelog\n\n## 1.0.0\n\n" {
+	if got := changelog.Prepend("", "## 1.0.0\n"); got != "# Changelog\n\n## 1.0.0\n" { // single trailing newline: end-of-file-fixer friendly
 		t.Errorf("empty: %q", got)
 	}
 	if got := changelog.Prepend("# Changelog\n\n## 1.0.0\n", "## 1.1.0\n"); got != "# Changelog\n\n## 1.1.0\n\n## 1.0.0\n" {

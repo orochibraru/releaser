@@ -42,7 +42,7 @@ repos:
         pass_filenames: false
       - id: go-test
         name: go test
-        entry: go test ./...
+        entry: go test -short ./... # full suite (Docker example) runs in CI
         language: system
         types: [go]
         pass_filenames: false

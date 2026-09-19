@@ -15,9 +15,13 @@ internal/
 ├── docker/             buildx build --push
 ├── npm/                package.json version bump
 └── artifacts/          path[=name] specs → files
+examples/
+├── artifact/           artifact mode: build.sh → release asset
+└── docker/             docker mode: Dockerfile → image
 tests/
 ├── unit/               one file per internal package
-└── integration/        real binary against a local bare remote
+└── integration/        real binary against a local bare remote, a fake
+                        GitHub API and, for docker, a local registry
 action.yml              composite action: download binary, map inputs to flags
 ```
 

@@ -38,9 +38,12 @@ jobs:
 - [Docker mode](docs/docker.md)
 - [Architecture](docs/architecture.md)
 
+Runnable examples: [artifact mode](examples/artifact),
+[docker mode](examples/docker).
+
 ## Development
 
 ```bash
 prek install    # gofmt, go mod tidy, go vet, go test, prettier, markdownlint
-go test ./...   # tests/unit and tests/integration
+go test ./...   # unit + integration, incl. the examples (Docker one needs Docker)
 ```

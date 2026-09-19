@@ -10,7 +10,11 @@ const title = "# Changelog"
 // Prepend puts notes on top of an existing changelog, keeping a single title.
 func Prepend(existing, notes string) string {
 	rest := strings.TrimLeft(strings.TrimPrefix(existing, title), "\n")
-	return title + "\n\n" + notes + "\n" + rest
+	out := title + "\n\n" + notes
+	if rest != "" {
+		out += "\n" + rest
+	}
+	return out
 }
 
 // PrependFile applies Prepend to a file, creating it if missing.
