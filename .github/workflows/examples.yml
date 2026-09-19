@@ -57,14 +57,14 @@ jobs:
             asset: hello-VERSION.tar.gz
             manifest: package.json
           - example: docker
-            prepare: ""
+            no-build: true
             flags: -docker -docker-image localhost:5000/hello
     env:
       RELEASER: /tmp/releaser
       RELEASE: ${{ github.workspace }}/.github/scripts/release-example.sh
       ARTIFACTS: ${{ matrix.artifacts }}
       COMMIT: ${{ matrix.commit }}
-      PREPARE: ${{ matrix.prepare == null && './build.sh ${version}' || matrix.prepare }}
+      PREPARE: ${{ !matrix.no-build && './build.sh ${version}' || '' }}
       FLAGS: ${{ matrix.flags }}
     defaults:
       run:
