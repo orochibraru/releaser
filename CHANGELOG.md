@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.0](https://github.com/orochibraru/releaser/compare/v1.2.1...v1.3.0) (2026-09-19)
+
+### Features
+
+* add docker pull command on release page ([53ae526](https://github.com/orochibraru/releaser/commit/53ae526948141c3f07eecf40909fb51ed32f6598))
+
 ## [1.2.1](https://github.com/orochibraru/releaser/compare/v1.2.0...v1.2.1) (2026-09-19)
 
 ### Bug Fixes
