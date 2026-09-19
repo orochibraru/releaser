@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"cmp"
 	"fmt"
 	"os"
 	"os/exec"
@@ -30,41 +31,45 @@ func TestLangExamples(t *testing.T) {
 	if testing.Short() {
 		t.Skip("language examples skipped in -short mode")
 	}
-	for _, ex := range langExamples {
-		t.Run(ex.dir, func(t *testing.T) {
+	for _, example := range langExamples {
+		t.Run(example.dir, func(t *testing.T) {
 			t.Parallel()
-			if _, err := exec.LookPath(ex.tool); err != nil {
+			if _, err := exec.LookPath(example.tool); err != nil {
 				if os.Getenv("CI") != "" {
-					t.Fatal(ex.tool, "not installed: CI must run every example")
+					t.Fatal(example.tool, "not installed: CI must run every example")
 				}
-				t.Skip(ex.tool, "not installed")
+				t.Skip(example.tool, "not installed")
 			}
 			gh := newFakeGitHub(t)
-			r := newRepo(t, "../../examples/"+ex.dir)
+			r := newRepo(t, "../../examples/"+example.dir)
 			r.env = append(r.env, gh.env()...)
+			// The repo's HOME is a temp dir; rustup (CI's cargo) needs its real homes to find a toolchain.
+			home, _ := os.UserHomeDir()
+			r.env = append(r.env, "RUSTUP_HOME="+cmp.Or(os.Getenv("RUSTUP_HOME"), home+"/.rustup"),
+				"CARGO_HOME="+cmp.Or(os.Getenv("CARGO_HOME"), home+"/.cargo"))
 
-			releaseSteps(t, r, "-prepare", "./build.sh ${version}", "-artifacts", ex.artifacts, "-commit", ex.commit)
+			releaseSteps(t, r, "-prepare", "./build.sh ${version}", "-artifacts", example.artifacts, "-commit", example.commit)
 			checkChangelog(t, r)
 
-			for _, v := range []string{"1.0.0", "1.0.1", "1.1.0", "2.0.0"} {
-				if name := fmt.Sprintf(ex.asset, v); len(gh.assets[name]) == 0 {
-					t.Errorf("asset %s not uploaded; got %v", name, keys(gh.assets))
+			for _, version := range []string{"1.0.0", "1.0.1", "1.1.0", "2.0.0"} {
+				if name := fmt.Sprintf(example.asset, version); len(gh.assets[name]) == 0 {
+					t.Errorf("asset %s not uploaded; got %v", name, assetNames(gh.assets))
 				}
 			}
-			if ex.manifest != "" && !strings.Contains(r.read(ex.manifest), `2.0.0"`) {
-				t.Errorf("%s not bumped to 2.0.0:\n%s", ex.manifest, r.read(ex.manifest))
+			if example.manifest != "" && !strings.Contains(r.read(example.manifest), `2.0.0"`) {
+				t.Errorf("%s not bumped to 2.0.0:\n%s", example.manifest, r.read(example.manifest))
 			}
 			// Everything the build touched is either committed or gitignored.
-			if st := r.run(r.work, "git", "status", "--porcelain"); st != "" {
-				t.Errorf("dirty tree after release:\n%s", st)
+			if status := r.run(r.work, "git", "status", "--porcelain"); status != "" {
+				t.Errorf("dirty tree after release:\n%s", status)
 			}
 		})
 	}
 }
 
-func keys(m map[string][]byte) (ks []string) {
-	for k := range m {
-		ks = append(ks, k)
+func assetNames(assets map[string][]byte) (names []string) {
+	for name := range assets {
+		names = append(names, name)
 	}
-	return ks
+	return names
 }
