@@ -2,6 +2,7 @@ package integration
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -23,7 +24,8 @@ var langExamples = []struct {
 	{"bun", "bun", "dist/hello=hello-${version}", "", "hello-%s", "package.json"},
 }
 
-// Real toolchains, some fetching packages: skipped with -short, or per example when its tool is missing.
+// Real toolchains, some fetching packages: skipped with -short, or per example when its tool is
+// missing locally. In CI a missing tool fails instead, so no example silently drops out.
 func TestLangExamples(t *testing.T) {
 	if testing.Short() {
 		t.Skip("language examples skipped in -short mode")
@@ -32,6 +34,9 @@ func TestLangExamples(t *testing.T) {
 		t.Run(ex.dir, func(t *testing.T) {
 			t.Parallel()
 			if _, err := exec.LookPath(ex.tool); err != nil {
+				if os.Getenv("CI") != "" {
+					t.Fatal(ex.tool, "not installed: CI must run every example")
+				}
 				t.Skip(ex.tool, "not installed")
 			}
 			gh := newFakeGitHub(t)
