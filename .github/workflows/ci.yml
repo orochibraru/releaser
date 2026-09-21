@@ -2,7 +2,8 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # releaser/release: the release PR's branch, pushed over the deploy key, so its checks run.
+    branches: [main, releaser/release]
   pull_request:
 
 jobs:
@@ -32,6 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     steps:
       # Pushes go over SSH with the deploy key: the main ruleset lets deploy keys bypass it.
       - uses: actions/checkout@v7
@@ -42,7 +44,8 @@ jobs:
         with:
           go-version-file: go.mod
       - id: release
-        run: go run ./cmd -commit action.yml -artifacts 'dist/*' -prepare "$PREPARE"
+        # A canary per push; stable releases through the release PR.
+        run: go run ./cmd -prerelease canary -release-pr -commit action.yml -artifacts 'dist/*' -prepare "$PREPARE"
         env:
           GITHUB_TOKEN: ${{ github.token }}
           # Pin action.yml to the new version and cross-compile the binaries it downloads.
@@ -52,10 +55,11 @@ jobs:
             for p in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
               CGO_ENABLED=0 GOOS=${p%/*} GOARCH=${p#*/} go build -trimpath -ldflags="-s -w" -o "dist/releaser-${p%/*}-${p#*/}" ./cmd
             done
-      # Marketplace users pin @v1: move the major tag to the new release.
-      - if: steps.release.outputs.released == 'true'
+      # Marketplace users pin @v1: move the major tag to the new stable release (not HEAD
+      # after a merge commit, and never to a canary).
+      - if: steps.release.outputs.released == 'true' && steps.release.outputs.prerelease == 'false'
         env:
           TAG: ${{ steps.release.outputs.tag }}
         run: |
-          git tag -f "${TAG%%.*}"
+          git tag -f "${TAG%%.*}" "$TAG"
           git push -f origin "${TAG%%.*}"

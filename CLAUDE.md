@@ -10,11 +10,13 @@ works is in [docs/architecture.md](docs/architecture.md); inputs and flags in
 - Out of the box what semantic-release needs a config and a stack of plugins
   for: conventional commits in; version, `CHANGELOG.md`, `package.json` bump,
   release commit, tag, GitHub release out. Plus two optional modes, usable
-  together: artifact (attach files) and docker (build and push the image).
+  together: artifact (attach files) and docker (build and push the image). For
+  trunk-based repos: `prerelease` (a tag-only canary per push) and `release-pr`
+  (release-please style PR; merging it tags the stable release).
 - Fast, zero dependencies: Go stdlib only. Never add a module.
 - No config file. Flags only, mapped 1:1 to action inputs of the same name.
-- Deferred on purpose: prereleases, multi-branch releases, Windows binaries of
-  releaser itself.
+- Deferred on purpose: prerelease channels per branch, multi-branch releases,
+  Windows binaries of releaser itself.
 - Positioning: not GoReleaser (that starts from an existing tag and does
   packaging; the two chain). The nearest competitor is go-semantic-release,
   which downloads plugins at runtime.
@@ -44,7 +46,8 @@ binary `cmd`; known and accepted.
 
 ## Testing
 
-- `prek install`, then hooks run on commit: gofmt, `go mod tidy -diff`, go vet,
+- `mise install` (go and prek, pinned in `mise.toml`), `prek install`, then
+  hooks run on commit: gofmt, `go mod tidy -diff`, go vet,
   `go test -short ./...`, prettier and markdownlint on Markdown.
 - `go test ./...` is the full suite. Integration tests build the binary and
   release throwaway repos into local bare remotes, with a fake GitHub API

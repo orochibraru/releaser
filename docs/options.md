@@ -14,31 +14,36 @@ Every action input maps to a CLI flag of the same name.
     docker-image: ""
     docker-platforms: ""
     draft: false
+    prerelease: ""
+    release-pr: false
     dry-run: false
     token: ${{ github.token }}
 ```
 
-| Input / flag       | Default                  | Description                                                                                                                 |
-| ------------------ | ------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| `branch`           | `main`                   | Branch to release from. Any other branch is a no-op.                                                                        |
-| `rules`            | —                        | Bump overrides, e.g. `breaking=patch,feat=patch`. See [Versioning](versioning.md#rules).                                    |
-| `prepare`          | —                        | Shell command run before the release commit. `${version}` is replaced with the new version, e.g. `1.2.3`.                   |
-| `commit`           | —                        | Extra files for the release commit, comma separated. `CHANGELOG.md` and `package.json` (when present) are always committed. |
-| `artifacts`        | —                        | Enables [artifact mode](artifacts.md). `path[=name]`, comma or newline separated.                                           |
-| `docker`           | `false`                  | Enables [Docker mode](docker.md).                                                                                           |
-| `docker-image`     | `ghcr.io/<owner>/<repo>` | Image to push.                                                                                                              |
-| `docker-platforms` | —                        | e.g. `linux/amd64,linux/arm64`.                                                                                             |
-| `draft`            | `false`                  | Create the GitHub release as a draft, assets still attached. Publish it yourself (`gh release edit`).                       |
-| `dry-run`          | `false` in CI            | Only print the next version and notes. The CLI defaults to `true` when `CI` is unset.                                       |
-| `token`            | `github.token`           | Action only; the CLI reads `GITHUB_TOKEN` or `GH_TOKEN`. Used for the release, uploads and the ghcr.io login.               |
+| Input / flag       | Default                  | Description                                                                                                                   |
+| ------------------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `branch`           | `main`                   | Branch to release from. Any other branch is a no-op.                                                                          |
+| `rules`            | —                        | Bump overrides, e.g. `breaking=patch,feat=patch`. See [Versioning](versioning.md#rules).                                      |
+| `prepare`          | —                        | Shell command run before the release commit. `${version}` is replaced with the new version, e.g. `1.2.3`.                     |
+| `commit`           | —                        | Extra files for the release commit, comma separated. `CHANGELOG.md` and `package.json` (when present) are always committed.   |
+| `artifacts`        | —                        | Enables [artifact mode](artifacts.md). `path[=name]`, comma or newline separated.                                             |
+| `docker`           | `false`                  | Enables [Docker mode](docker.md).                                                                                             |
+| `docker-image`     | `ghcr.io/<owner>/<repo>` | Image to push.                                                                                                                |
+| `docker-platforms` | —                        | e.g. `linux/amd64,linux/arm64`.                                                                                               |
+| `draft`            | `false`                  | Create the GitHub release as a draft, assets still attached. Publish it yourself (`gh release edit`).                         |
+| `prerelease`       | —                        | Ship every push as `X.Y.Z-<id>.N`: tag and GitHub prerelease, no commit. See [Canaries and release PR](trunk.md).             |
+| `release-pr`       | `false`                  | Open or update a release PR instead of committing; merging it releases. See [Canaries and release PR](trunk.md).              |
+| `dry-run`          | `false` in CI            | Only print the next version and notes. The CLI defaults to `true` when `CI` is unset.                                         |
+| `token`            | `github.token`           | Action only; the CLI reads `GITHUB_TOKEN` or `GH_TOKEN`. Used for the release, uploads, the release PR and the ghcr.io login. |
 
 ## Outputs
 
-| Output     | Example  | Description                                            |
-| ---------- | -------- | ------------------------------------------------------ |
-| `released` | `true`   | `false` when nothing shipped, dry runs included.       |
-| `version`  | `1.2.3`  | The version released, or that a dry run would release. |
-| `tag`      | `v1.2.3` | Same as `version`, with the `v`.                       |
+| Output       | Example  | Description                                               |
+| ------------ | -------- | --------------------------------------------------------- |
+| `released`   | `true`   | `false` when nothing shipped, dry runs included.          |
+| `version`    | `1.2.3`  | The version released, or that a dry run would release.    |
+| `tag`        | `v1.2.3` | Same as `version`, with the `v`.                          |
+| `prerelease` | `false`  | `true` when `version` is a prerelease (`1.2.3-canary.4`). |
 
 | Case                                | `released` | `version` |
 | ----------------------------------- | ---------- | --------- |
@@ -61,7 +66,7 @@ action or as a plain `run:` step:
 | Variable                              | Used for                                       |
 | ------------------------------------- | ---------------------------------------------- |
 | `CI`                                  | Unset → dry run by default.                    |
-| `GITHUB_TOKEN` / `GH_TOKEN`           | GitHub release, asset uploads, ghcr.io login.  |
+| `GITHUB_TOKEN` / `GH_TOKEN`           | GitHub release, uploads, release PR, ghcr.io.  |
 | `GITHUB_REF_NAME`                     | Current branch (falls back to `git`).          |
 | `GITHUB_REPOSITORY`                   | `owner/repo` (falls back to the `origin` URL). |
 | `GITHUB_SERVER_URL`, `GITHUB_API_URL` | GitHub Enterprise Server.                      |

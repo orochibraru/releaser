@@ -6,16 +6,18 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"sync"
 	"testing"
 )
 
-// fakeGitHub records releases and asset uploads, standing in for api.github.com.
+// fakeGitHub records releases, asset uploads and pull requests, standing in for api.github.com.
 type fakeGitHub struct {
 	*httptest.Server
 	mu       sync.Mutex
 	releases []map[string]any // decoded POST /releases bodies
 	assets   map[string][]byte
+	pulls    []map[string]any // POST /pulls bodies, updated by PATCH; "state" is "open" until merged
 }
 
 func newFakeGitHub(t *testing.T) *fakeGitHub {
@@ -46,6 +48,39 @@ func newFakeGitHub(t *testing.T) *fakeGitHub {
 		f.assets[r.URL.Query().Get("name")] = data
 		f.mu.Unlock()
 		w.WriteHeader(http.StatusCreated)
+	})
+	mux.HandleFunc("GET /repos/o/r/pulls", func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		open := []map[string]any{}
+		f.mu.Lock()
+		for i, pr := range f.pulls {
+			if "o:"+fmt.Sprint(pr["head"]) == q.Get("head") && pr["base"] == q.Get("base") && pr["state"] == q.Get("state") {
+				open = append(open, map[string]any{"number": i + 1, "html_url": f.URL + "/o/r/pull/" + fmt.Sprint(i+1)})
+			}
+		}
+		f.mu.Unlock()
+		json.NewEncoder(w).Encode(open)
+	})
+	mux.HandleFunc("POST /repos/o/r/pulls", func(w http.ResponseWriter, r *http.Request) {
+		var pr map[string]any
+		json.NewDecoder(r.Body).Decode(&pr)
+		pr["state"] = "open"
+		f.mu.Lock()
+		f.pulls = append(f.pulls, pr)
+		n := len(f.pulls)
+		f.mu.Unlock()
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"html_url": f.URL + "/o/r/pull/" + fmt.Sprint(n)})
+	})
+	mux.HandleFunc("PATCH /repos/o/r/pulls/{n}", func(w http.ResponseWriter, r *http.Request) {
+		n, _ := strconv.Atoi(r.PathValue("n"))
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if n < 1 || n > len(f.pulls) {
+			http.NotFound(w, r)
+			return
+		}
+		json.NewDecoder(r.Body).Decode(&f.pulls[n-1])
 	})
 	f.Server = httptest.NewServer(mux)
 	t.Cleanup(f.Close)

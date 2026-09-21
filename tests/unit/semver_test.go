@@ -29,3 +29,29 @@ func TestNext(t *testing.T) {
 		}
 	}
 }
+
+func TestPre(t *testing.T) {
+	v := semver.Version{1, 2, 0}
+	tags := []string{"v1.2.0-canary.1", "v1.2.0-canary.10", "v1.2.0-canary.9", "v1.1.0-canary.40", "v1.2.0-beta.7", "v1.2.0-canary.x"}
+	if got := v.Pre("canary", tags); got != "1.2.0-canary.11" {
+		t.Errorf("Pre = %s, want 1.2.0-canary.11", got)
+	}
+	if got := v.Pre("beta", nil); got != "1.2.0-beta.1" {
+		t.Errorf("first Pre = %s", got)
+	}
+}
+
+func TestFromReleaseCommit(t *testing.T) {
+	for msg, want := range map[string]string{
+		"chore(release): 1.4.0":                         "1.4.0",
+		"chore(release): 1.4.0 (#12)\n\n## notes":       "1.4.0", // squash merge
+		"chore(release): 1.4.0 [skip ci]":               "",      // direct mode commit
+		"chore(release): 1.4.0-canary.1":                "",
+		"fix: chore(release): 1.4.0":                    "",
+		"Merge pull request #3 from o/releaser/release": "",
+	} {
+		if got, ok := semver.FromReleaseCommit(msg); got != want || ok != (want != "") {
+			t.Errorf("FromReleaseCommit(%q) = %q %v, want %q", msg, got, ok, want)
+		}
+	}
+}

@@ -48,3 +48,13 @@ func TestPrepend(t *testing.T) {
 		t.Errorf("existing: %q", got)
 	}
 }
+
+func TestLatestEntry(t *testing.T) {
+	a, b := "## 1.0.0\n\n### Features\n\n* a\n", "## 1.1.0\n\n### Bug Fixes\n\n* b\n"
+	if got := changelog.Latest(changelog.Prepend(changelog.Prepend("", a), b)); got != b {
+		t.Errorf("Latest = %q, want %q", got, b)
+	}
+	if got := changelog.Latest(changelog.Prepend("", a)); got != a {
+		t.Errorf("Latest of one entry = %q", got)
+	}
+}

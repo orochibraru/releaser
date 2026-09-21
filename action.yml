@@ -22,7 +22,7 @@ inputs:
     description: "Artifact mode: files to attach to the GitHub release, one per line or comma separated, as path[=name]. Globs and ${version} work."
     default: ""
   docker:
-    description: "Docker mode: build ./Dockerfile and push <image>:<version> and <image>:latest."
+    description: "Docker mode: build ./Dockerfile and push <image>:<version> and <image>:latest (<image>:<prerelease id> for prereleases)."
     default: "false"
   docker-image:
     description: Image name. Defaults to ghcr.io/<owner>/<repo>.
@@ -33,11 +33,17 @@ inputs:
   draft:
     description: Create the GitHub release as a draft, to publish it yourself once assets are attached.
     default: "false"
+  prerelease:
+    description: "Ship every push as a prerelease X.Y.Z-<id>.N (e.g. canary): tag and GitHub prerelease, no release commit."
+    default: ""
+  release-pr:
+    description: Open or update a release PR instead of committing. Merging it tags the release. Check out with a deploy key (ssh-key) so the PR's checks run; see docs/trunk.md.
+    default: "false"
   dry-run:
     description: Only print the next release. Still sets the version and tag outputs.
     default: "false"
   token:
-    description: Token for the GitHub release, asset uploads and ghcr.io login.
+    description: Token for the GitHub release, asset uploads, release PR and ghcr.io login.
     default: ${{ github.token }}
 
 outputs:
@@ -50,6 +56,9 @@ outputs:
   tag:
     description: The released tag, e.g. v1.2.3. On a dry run, the tag that would be released. Empty if nothing to release.
     value: ${{ steps.release.outputs.tag }}
+  prerelease:
+    description: '"true" if the version is a prerelease (X.Y.Z-<id>.N). Empty if nothing to release.'
+    value: ${{ steps.release.outputs.prerelease }}
 
 runs:
   using: composite
@@ -69,6 +78,8 @@ runs:
         IN_DOCKER_IMAGE: ${{ inputs.docker-image }}
         IN_DOCKER_PLATFORMS: ${{ inputs.docker-platforms }}
         IN_DRAFT: ${{ inputs.draft }}
+        IN_PRERELEASE: ${{ inputs.prerelease }}
+        IN_RELEASE_PR: ${{ inputs.release-pr }}
         IN_DRY_RUN: ${{ inputs.dry-run }}
       run: |
         set -euo pipefail
@@ -83,4 +94,5 @@ runs:
         chmod +x "$bin"
         "$bin" -branch "$IN_BRANCH" -rules "$IN_RULES" -prepare "$IN_PREPARE" -commit "$IN_COMMIT" \
           -artifacts "$IN_ARTIFACTS" -docker="$IN_DOCKER" -docker-image "$IN_DOCKER_IMAGE" \
-          -docker-platforms "$IN_DOCKER_PLATFORMS" -draft="$IN_DRAFT" -dry-run="$IN_DRY_RUN"
+          -docker-platforms "$IN_DOCKER_PLATFORMS" -draft="$IN_DRAFT" -prerelease "$IN_PRERELEASE" \
+          -release-pr="$IN_RELEASE_PR" -dry-run="$IN_DRY_RUN"
