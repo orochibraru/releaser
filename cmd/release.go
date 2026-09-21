@@ -79,7 +79,7 @@ func release(o options) error {
 	fmt.Printf("next release: %s\n\n%s\n", tag, notes)
 	if o.dryRun {
 		fmt.Println("dry run: nothing written (pass -dry-run=false or set CI to release)")
-		return nil
+		return github.SetOutput("released=false", "version="+version, "tag="+tag)
 	}
 
 	token := cmp.Or(os.Getenv("GITHUB_TOKEN"), os.Getenv("GH_TOKEN"))
@@ -128,7 +128,7 @@ func release(o options) error {
 	fmt.Println("pushed", tag)
 	if token == "" || repo == "" {
 		fmt.Println("no GITHUB_TOKEN or GitHub remote: skipping GitHub release")
-	} else if err := github.CreateRelease(repo, token, tag, body, assets); err != nil {
+	} else if err := github.CreateRelease(repo, token, tag, body, assets, o.draft); err != nil {
 		return fmt.Errorf("github release: %w", err)
 	}
 	return github.SetOutput("released=true", "version="+version, "tag="+tag)

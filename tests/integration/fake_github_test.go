@@ -2,6 +2,7 @@ package integration
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +14,7 @@ import (
 type fakeGitHub struct {
 	*httptest.Server
 	mu       sync.Mutex
-	releases []map[string]string
+	releases []map[string]any // decoded POST /releases bodies
 	assets   map[string][]byte
 }
 
@@ -25,7 +26,7 @@ func newFakeGitHub(t *testing.T) *fakeGitHub {
 			http.Error(w, "bad token", http.StatusUnauthorized)
 			return
 		}
-		var rel map[string]string
+		var rel map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&rel); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -35,7 +36,7 @@ func newFakeGitHub(t *testing.T) *fakeGitHub {
 		f.mu.Unlock()
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{
-			"html_url":   f.URL + "/o/r/releases/" + rel["tag_name"],
+			"html_url":   f.URL + "/o/r/releases/" + fmt.Sprint(rel["tag_name"]),
 			"upload_url": f.URL + "/uploads/assets{?name,label}",
 		})
 	})
