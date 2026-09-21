@@ -24,6 +24,7 @@
 			"description": "How versions are picked and what gets published.",
 			"icon": "tag",
 			"pages": [
+				{ "slug": "flows", "title": "Release flows", "icon": "git-branch" },
 				{ "slug": "versioning", "icon": "git-commit-horizontal" },
 				{ "slug": "artifacts", "title": "Artifact mode", "icon": "package" },
 				{ "slug": "docker", "title": "Docker mode", "icon": "container" },

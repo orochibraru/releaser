@@ -1,3 +1,8 @@
 [tools]
 go = "1.24"
 prek = "0.5.3"
+gotestsum = "1.13.0"
+
+[tasks.cover]
+description = "Coverage of cmd/ and internal/ across all tests; fails under 90%"
+run = ".github/scripts/coverage.sh"

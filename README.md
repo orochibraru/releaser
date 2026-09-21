@@ -34,6 +34,7 @@ jobs:
 - [Getting started](docs/getting-started.md)
 - [Inputs and flags](docs/options.md)
 - [Migrating from semantic-release](docs/migrating.md)
+- [Release flows](docs/flows.md)
 - [Versioning](docs/versioning.md)
 - [Artifact mode](docs/artifacts.md)
 - [Docker mode](docs/docker.md)

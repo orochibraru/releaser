@@ -1,6 +1,8 @@
 package unit
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -56,5 +58,21 @@ func TestLatestEntry(t *testing.T) {
 	}
 	if got := changelog.Latest(changelog.Prepend("", a)); got != a {
 		t.Errorf("Latest of one entry = %q", got)
+	}
+}
+
+func TestPrependFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "CHANGELOG.md")
+	if err := changelog.PrependFile(path, "## 1.0.0\n"); err != nil {
+		t.Fatal(err)
+	}
+	if err := changelog.PrependFile(path, "## 1.1.0\n"); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := os.ReadFile(path); string(got) != "# Changelog\n\n## 1.1.0\n\n## 1.0.0\n" {
+		t.Errorf("CHANGELOG.md = %q", got)
+	}
+	if err := changelog.PrependFile(t.TempDir(), "## 1.0.0\n"); err == nil {
+		t.Error("prepending to a directory succeeded")
 	}
 }

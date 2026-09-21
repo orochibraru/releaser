@@ -12,13 +12,20 @@ import (
 
 var bin string
 
+// coverDir, when set (by .github/scripts/coverage.sh), gets the coverage of every run of the binary.
+var coverDir = os.Getenv("RELEASER_COVERDIR")
+
 func TestMain(m *testing.M) {
 	dir, err := os.MkdirTemp("", "releaser-bin")
 	if err != nil {
 		panic(err)
 	}
 	bin = filepath.Join(dir, "releaser")
-	if out, err := exec.Command("go", "build", "-o", bin, "../../cmd").CombinedOutput(); err != nil {
+	args := []string{"build", "-o", bin}
+	if coverDir != "" {
+		args = append(args, "-cover", "-coverpkg=../../cmd/...,../../internal/...")
+	}
+	if out, err := exec.Command("go", append(args, "../../cmd")...).CombinedOutput(); err != nil {
 		panic(fmt.Sprintf("build: %v\n%s", err, out))
 	}
 	code := m.Run()
@@ -39,7 +46,7 @@ func newRepo(t *testing.T, src string) *repo {
 	t.Helper()
 	tmp := t.TempDir()
 	r := &repo{t: t, work: filepath.Join(tmp, "work"), remote: filepath.Join(tmp, "remote.git"),
-		env: []string{"PATH=" + os.Getenv("PATH"), "HOME=" + tmp, "GIT_CONFIG_NOSYSTEM=1", "CI=true"}}
+		env: []string{"PATH=" + os.Getenv("PATH"), "HOME=" + tmp, "GIT_CONFIG_NOSYSTEM=1", "CI=true", "GOCOVERDIR=" + coverDir}}
 	r.run(tmp, "git", "init", "-q", "--bare", "-b", "main", r.remote)
 	if src != "" {
 		if err := os.CopyFS(r.work, os.DirFS(src)); err != nil {

@@ -1,6 +1,8 @@
 package unit
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/orochibraru/releaser/internal/npm"
@@ -15,5 +17,20 @@ func TestSetVersion(t *testing.T) {
 	}
 	if _, ok := npm.SetVersion([]byte(`{"name":"x"}`), "1.2.3"); ok {
 		t.Error("bumped a package.json with no version")
+	}
+}
+
+func TestSetVersionFile(t *testing.T) {
+	dir := t.TempDir()
+	if bumped, err := npm.SetVersionFile(filepath.Join(dir, "missing.json"), "1.0.0"); bumped || err != nil {
+		t.Errorf("missing file: %v %v", bumped, err)
+	}
+	noVersion := filepath.Join(dir, "package.json")
+	os.WriteFile(noVersion, []byte(`{"name":"x"}`), 0o644)
+	if bumped, err := npm.SetVersionFile(noVersion, "1.0.0"); bumped || err != nil {
+		t.Errorf("no version field: %v %v", bumped, err)
+	}
+	if _, err := npm.SetVersionFile(dir, "1.0.0"); err == nil {
+		t.Error("reading a directory succeeded")
 	}
 }

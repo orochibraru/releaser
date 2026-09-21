@@ -24,7 +24,8 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - run: go test ./...
+      # Full suite with coverage, including the built binary's runs; fails under 90%.
+      - run: .github/scripts/coverage.sh
 
   # Dogfood: releaser releases itself with artifact mode.
   release:

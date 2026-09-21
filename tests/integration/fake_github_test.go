@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -18,6 +19,7 @@ type fakeGitHub struct {
 	releases []map[string]any // decoded POST /releases bodies
 	assets   map[string][]byte
 	pulls    []map[string]any // POST /pulls bodies, updated by PATCH; "state" is "open" until merged
+	failing  string           // requests whose "METHOD /path" starts with this get a 500
 }
 
 func newFakeGitHub(t *testing.T) *fakeGitHub {
@@ -82,7 +84,16 @@ func newFakeGitHub(t *testing.T) *fakeGitHub {
 		}
 		json.NewDecoder(r.Body).Decode(&f.pulls[n-1])
 	})
-	f.Server = httptest.NewServer(mux)
+	f.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		fail := f.failing != "" && strings.HasPrefix(r.Method+" "+r.URL.Path, f.failing)
+		f.mu.Unlock()
+		if fail {
+			http.Error(w, "boom", http.StatusInternalServerError)
+			return
+		}
+		mux.ServeHTTP(w, r)
+	}))
 	t.Cleanup(f.Close)
 	return f
 }

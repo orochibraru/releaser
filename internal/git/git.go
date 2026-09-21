@@ -9,7 +9,9 @@ import (
 	"strings"
 )
 
-var remoteRe = regexp.MustCompile(`[:/]([^/:]+/[^/]+?)(?:\.git)?/?$`)
+// remoteRe takes owner/repo from a network remote (scp-like ssh, or http/https/ssh/git URLs).
+// Local paths and file:// remotes have no owner/repo.
+var remoteRe = regexp.MustCompile(`^(?:[\w.-]+@[\w.-]+:|(?:https?|ssh|git)://(?:[^@/]+@)?[^/]+/)([^/:]+/[^/]+?)(?:\.git)?/?$`)
 
 // Run executes git and returns trimmed stdout; errors carry stderr.
 func Run(args ...string) (string, error) {

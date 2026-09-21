@@ -25,7 +25,8 @@ jobs:
           release-pr: true
 ```
 
-The two inputs are independent; use either one alone.
+The two inputs are independent; use either one alone. [Release flows](flows.md)
+draws each setup.
 
 ## Canaries
 

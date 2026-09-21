@@ -62,6 +62,10 @@ binary `cmd`; known and accepted.
   `.github/scripts/release-example.sh`. Adding an example: the `add-example`
   skill.
 - When adding a check, prove it can fail by breaking the code once.
+- `mise run cover` (`.github/scripts/coverage.sh`, gotestsum) measures `cmd/`
+  and `internal/` across all tests, including every run of the integration
+  binary (built with `-cover`, `GOCOVERDIR` via `RELEASER_COVERDIR`). CI's
+  `test` job runs it and fails under 90%.
 
 ## Conventions
 

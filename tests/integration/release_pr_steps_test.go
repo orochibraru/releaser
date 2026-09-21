@@ -77,6 +77,15 @@ func TestReleasePR(t *testing.T) {
 	if got := readFile(outputs); got != "released=false\nversion=1.0.0\ntag=v1.0.0\nprerelease=false\n" {
 		t.Errorf("release PR dry run GITHUB_OUTPUT = %q", got)
 	}
+	// With canaries on, the canary is what would ship.
+	os.Remove(outputs)
+	r.release("-prerelease", "canary", "-release-pr", "-dry-run")
+	if got := readFile(outputs); got != "released=false\nversion=1.0.0-canary.1\ntag=v1.0.0-canary.1\nprerelease=true\n" {
+		t.Errorf("canary dry run GITHUB_OUTPUT = %q", got)
+	}
+	if got := r.remoteTags(); got != "" {
+		t.Errorf("dry runs pushed %q", got)
+	}
 
 	// feat → first canary, and a PR for 1.0.0 whose commit bumps the files and has no [skip ci].
 	push("")
@@ -113,6 +122,14 @@ func TestReleasePR(t *testing.T) {
 	// Squash-merge the PR → v1.0.0 on the merged commit, notes straight from its CHANGELOG entry, no canary.
 	merge(true)
 	head := strings.TrimSpace(r.run(r.work, "git", "rev-parse", "HEAD"))
+	os.Remove(outputs)
+	r.run(r.work, "git", "push", "-q", "origin", "main")
+	if out := r.release("-prerelease", "canary", "-release-pr", "-dry-run"); !strings.Contains(out, "merged release PR") {
+		t.Errorf("stable dry run:\n%s", out)
+	}
+	if got := readFile(outputs); got != "released=false\nversion=1.0.0\ntag=v1.0.0\nprerelease=false\n" {
+		t.Errorf("stable dry run GITHUB_OUTPUT = %q", got)
+	}
 	push("")
 	rel := lastRelease("v1.0.0", false)
 	if got := readFile(outputs); got != "released=true\nversion=1.0.0\ntag=v1.0.0\nprerelease=false\n" {

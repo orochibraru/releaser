@@ -178,7 +178,7 @@ func (r run) stable(version, sha string) error {
 	tag := "v" + version
 	log, err := git.Run("show", sha+":CHANGELOG.md")
 	if err != nil {
-		return err
+		return fmt.Errorf("release commit %s has no CHANGELOG.md: %w", sha[:min(7, len(sha))], err)
 	}
 	notes := changelog.Latest(log + "\n")
 	fmt.Printf("merged release PR %s: releasing %s\n\n%s\n", sha[:min(7, len(sha))], tag, notes)
