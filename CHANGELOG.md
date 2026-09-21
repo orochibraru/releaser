@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.0](https://github.com/orochibraru/releaser/compare/v1.3.0...v1.4.0) (2026-09-21)
+
+### Features
+
+* handle draft input & tag outputs (#1) ([6dd1e63](https://github.com/orochibraru/releaser/commit/6dd1e63b3fc139708e8da6f3f85f0e9da55ab778))
+
 ## [1.3.0](https://github.com/orochibraru/releaser/compare/v1.2.1...v1.3.0) (2026-09-19)
 
 ### Features
