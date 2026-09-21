@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.5.0](https://github.com/orochibraru/releaser/compare/v1.4.0...v1.5.0) (2026-09-21)
+
+### Features
+
+* trunk canary workflow (#2) ([bc0b274](https://github.com/orochibraru/releaser/commit/bc0b274df0f2bc3d899362bc2eee0e0790cd9fcf))
+
 ## [1.4.0](https://github.com/orochibraru/releaser/compare/v1.3.0...v1.4.0) (2026-09-21)
 
 ### Features

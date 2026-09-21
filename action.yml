@@ -67,7 +67,7 @@ runs:
       shell: bash
       env:
         # Bumped by this repo's own release (see .github/workflows/ci.yml).
-        RELEASER_VERSION: "1.4.0"
+        RELEASER_VERSION: "1.5.0"
         GITHUB_TOKEN: ${{ inputs.token }}
         IN_BRANCH: ${{ inputs.branch }}
         IN_RULES: ${{ inputs.rules }}
