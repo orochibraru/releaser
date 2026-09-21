@@ -1,32 +1,5 @@
 # Architecture
 
-## Repository layout
-
-```text
-cmd/                    the CLI
-├── main.go             flags → options
-└── release.go          the release pipeline
-internal/
-├── conventional/       commit parsing (commit.go), bump rules (rules.go)
-├── semver/             vX.Y.Z tags: latest, next, prerelease N, release PR commit
-├── changelog/          release notes (notes.go), CHANGELOG.md (file.go)
-├── git/                git CLI wrapper: log, tags, commit + tag + push, tag push,
-│                       release PR branch push
-├── github/             REST release + uploads (release.go), release PR
-│                       (pull_request.go), outputs (output.go)
-├── docker/             buildx build --push
-├── npm/                package.json version bump
-└── artifacts/          path[=name] specs → files
-examples/
-├── artifact/           artifact mode: build.sh → release asset
-└── docker/             docker mode: Dockerfile → image
-tests/
-├── unit/               one file per internal package
-└── integration/        real binary against a local bare remote, a fake
-                        GitHub API and, for docker, a local registry
-action.yml              composite action: download binary, map inputs to flags
-```
-
 Only the Go standard library is used. `git` and, in Docker mode, `docker` must
 be on `PATH`.
 

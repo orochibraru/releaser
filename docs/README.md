@@ -13,8 +13,7 @@ The guides in this folder, in reading order:
 7. [Docker mode](docker.md) — building and pushing the release image.
 8. [Canaries and release PR](trunk.md) — trunk-based development: a canary per
    push, a PR per stable release.
-9. [Architecture](architecture.md) — the release pipeline and how the code is
-   laid out.
+9. [Architecture](architecture.md) — the release pipeline and the action.
 
 This file is the index when someone reads the repo on GitHub; the docs site
 ignores it. The site's categories, order, titles and icons come from
