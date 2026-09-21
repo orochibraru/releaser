@@ -74,6 +74,21 @@ new PR; commits merged in the same push wait for the next one.
 The release commit has no `[skip ci]`, because merging it has to run the
 workflow.
 
+## Allow Actions to open PRs
+
+GitHub blocks pull requests created by Actions by default, and releaser then
+fails with
+`403 ... GitHub Actions is not permitted to create or approve pull requests`.
+Turn on **Settings → Actions → General → Allow GitHub Actions to create and
+approve pull requests**, or:
+
+```sh
+gh api -X PUT repos/<owner>/<repo>/actions/permissions/workflow \
+  -f default_workflow_permissions=read -F can_approve_pull_request_reviews=true
+```
+
+For an organization's repos, the organization setting must allow it first.
+
 ## Checks on the PR
 
 Nothing done with `github.token` triggers workflows: a release PR opened with it

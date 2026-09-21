@@ -82,6 +82,21 @@ func TestUpsertPR(t *testing.T) {
 	}
 }
 
+// The repo setting every release PR user hits first gets a pointer to the fix.
+func TestUpsertPRForbidden(t *testing.T) {
+	api(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			w.Write([]byte("[]"))
+			return
+		}
+		http.Error(w, `{"message":"GitHub Actions is not permitted to create or approve pull requests."}`, http.StatusForbidden)
+	})
+	_, err := github.UpsertPR("o/r", "t", "releaser/release", "main", "chore(release): 1.0.0", "")
+	if err == nil || !strings.Contains(err.Error(), "403") || !strings.Contains(err.Error(), `"Allow GitHub Actions to create and approve pull requests"`) {
+		t.Errorf("err = %v", err)
+	}
+}
+
 func TestSetOutput(t *testing.T) {
 	t.Setenv("GITHUB_OUTPUT", "")
 	if err := github.SetOutput("a=1"); err != nil {

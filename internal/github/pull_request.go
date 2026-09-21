@@ -28,5 +28,8 @@ func UpsertPR(repo, token, head, base, title, body string) (string, error) {
 	}
 	payload, _ := json.Marshal(map[string]string{"title": title, "body": body, "head": head, "base": base})
 	err := post(api()+"/repos/"+repo+"/pulls", token, "application/json", payload, &pr)
+	if err != nil && strings.Contains(err.Error(), "not permitted to create or approve pull requests") {
+		err = fmt.Errorf("%w\nenable Settings > Actions > General > \"Allow GitHub Actions to create and approve pull requests\"", err)
+	}
 	return pr.HTMLURL, err
 }
