@@ -16,14 +16,14 @@ import (
 )
 
 // CreateRelease publishes a release for tag (or creates it as a draft) and uploads assets to it.
-func CreateRelease(repo, token, tag, body string, assets []artifacts.Asset, draft bool) error {
-	api := cmp.Or(os.Getenv("GITHUB_API_URL"), "https://api.github.com")
-	payload, _ := json.Marshal(map[string]any{"tag_name": tag, "name": tag, "body": body, "draft": draft})
+// A prerelease never becomes the repository's latest release.
+func CreateRelease(repo, token, tag, body string, assets []artifacts.Asset, draft, prerelease bool) error {
+	payload, _ := json.Marshal(map[string]any{"tag_name": tag, "name": tag, "body": body, "draft": draft, "prerelease": prerelease})
 	var rel struct {
 		HTMLURL   string `json:"html_url"`
 		UploadURL string `json:"upload_url"`
 	}
-	if err := post(api+"/repos/"+repo+"/releases", token, "application/json", payload, &rel); err != nil {
+	if err := post(api()+"/repos/"+repo+"/releases", token, "application/json", payload, &rel); err != nil {
 		return err
 	}
 	upload, _, _ := strings.Cut(rel.UploadURL, "{")
@@ -45,8 +45,14 @@ func CreateRelease(repo, token, tag, body string, assets []artifacts.Asset, draf
 	return nil
 }
 
+func api() string { return cmp.Or(os.Getenv("GITHUB_API_URL"), "https://api.github.com") }
+
 func post(u, token, contentType string, body []byte, out any) error {
-	req, err := http.NewRequest(http.MethodPost, u, bytes.NewReader(body))
+	return send(http.MethodPost, u, token, contentType, body, out)
+}
+
+func send(method, u, token, contentType string, body []byte, out any) error {
+	req, err := http.NewRequest(method, u, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}

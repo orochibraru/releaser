@@ -1,6 +1,8 @@
 package unit
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -46,5 +48,31 @@ func TestPrepend(t *testing.T) {
 	}
 	if got := changelog.Prepend("# Changelog\n\n## 1.0.0\n", "## 1.1.0\n"); got != "# Changelog\n\n## 1.1.0\n\n## 1.0.0\n" {
 		t.Errorf("existing: %q", got)
+	}
+}
+
+func TestLatestEntry(t *testing.T) {
+	a, b := "## 1.0.0\n\n### Features\n\n* a\n", "## 1.1.0\n\n### Bug Fixes\n\n* b\n"
+	if got := changelog.Latest(changelog.Prepend(changelog.Prepend("", a), b)); got != b {
+		t.Errorf("Latest = %q, want %q", got, b)
+	}
+	if got := changelog.Latest(changelog.Prepend("", a)); got != a {
+		t.Errorf("Latest of one entry = %q", got)
+	}
+}
+
+func TestPrependFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "CHANGELOG.md")
+	if err := changelog.PrependFile(path, "## 1.0.0\n"); err != nil {
+		t.Fatal(err)
+	}
+	if err := changelog.PrependFile(path, "## 1.1.0\n"); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := os.ReadFile(path); string(got) != "# Changelog\n\n## 1.1.0\n\n## 1.0.0\n" {
+		t.Errorf("CHANGELOG.md = %q", got)
+	}
+	if err := changelog.PrependFile(t.TempDir(), "## 1.0.0\n"); err == nil {
+		t.Error("prepending to a directory succeeded")
 	}
 }

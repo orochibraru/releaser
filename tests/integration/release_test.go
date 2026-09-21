@@ -42,7 +42,7 @@ func TestRelease(t *testing.T) {
 	if got := r.run(r.remote, "git", "rev-parse", "main"); got != head {
 		t.Errorf("dry run moved remote main: %s -> %s", head, got)
 	}
-	if got := readFile(outputs); got != "released=false\nversion=1.0.1\ntag=v1.0.1\n" {
+	if got := readFile(outputs); got != "released=false\nversion=1.0.1\ntag=v1.0.1\nprerelease=false\n" {
 		t.Errorf("dry run GITHUB_OUTPUT = %q", got)
 	}
 
@@ -97,7 +97,7 @@ func TestDraftRelease(t *testing.T) {
 	if string(gh.assets["a-1.0.1.txt"]) != "a" {
 		t.Errorf("draft asset not uploaded: %v", gh.assets)
 	}
-	if got := readFile(outputs); !strings.HasSuffix(got, "released=true\nversion=1.0.1\ntag=v1.0.1\n") {
+	if got := readFile(outputs); !strings.HasSuffix(got, "released=true\nversion=1.0.1\ntag=v1.0.1\nprerelease=false\n") {
 		t.Errorf("GITHUB_OUTPUT = %q", got)
 	}
 }

@@ -1,9 +1,13 @@
-// Package semver handles vX.Y.Z tags. Prereleases are deliberately ignored.
+// Package semver handles vX.Y.Z tags. Prerelease tags never count as the previous release;
+// they only number the next prerelease.
 package semver
 
 import (
 	"fmt"
+	"regexp"
 	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/orochibraru/releaser/internal/conventional"
 )
@@ -11,6 +15,9 @@ import (
 type Version [3]int
 
 var First = Version{1, 0, 0}
+
+// releaseRe matches a merged release PR: the PR title, with the " (#N)" GitHub adds on squash merges.
+var releaseRe = regexp.MustCompile(`^chore\(release\): (\d+\.\d+\.\d+)(?: \(#\d+\))?$`)
 
 func (v Version) String() string { return fmt.Sprintf("%d.%d.%d", v[0], v[1], v[2]) }
 
@@ -39,4 +46,26 @@ func (v Version) Next(level int) Version {
 		return Version{v[0], v[1] + 1, 0}
 	}
 	return Version{v[0], v[1], v[2] + 1}
+}
+
+// Pre returns the next prerelease of v, "X.Y.Z-id.N": N is one above the highest vX.Y.Z-id.N in tags.
+func (v Version) Pre(id string, tags []string) string {
+	prefix, n := v.Tag()+"-"+id+".", 0
+	for _, t := range tags {
+		if rest, ok := strings.CutPrefix(t, prefix); ok {
+			if k, err := strconv.Atoi(rest); err == nil {
+				n = max(n, k)
+			}
+		}
+	}
+	return fmt.Sprintf("%s-%s.%d", v, id, n+1)
+}
+
+// FromReleaseCommit returns the version of a merged release PR commit, from its subject.
+func FromReleaseCommit(message string) (string, bool) {
+	subject, _, _ := strings.Cut(message, "\n")
+	if m := releaseRe.FindStringSubmatch(strings.TrimSpace(subject)); m != nil {
+		return m[1], true
+	}
+	return "", false
 }

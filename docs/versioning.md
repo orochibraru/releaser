@@ -44,6 +44,8 @@ above. Unknown levels fail the run.
 
 - Tags are `vX.Y.Z`. The previous release is the highest such tag reachable from
   `HEAD`; prereleases (`v2.0.0-rc.1`) and other tags are ignored.
+- With `prerelease`, releases are `vX.Y.Z-<id>.N` tags; see
+  [Canaries and release PR](trunk.md). They only number the next prerelease.
 - No tag yet → the first release is `1.0.0`, whatever the bump.
 - Only commits after that tag count. The release commit is a `chore`, so it
   never triggers another release.

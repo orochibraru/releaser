@@ -22,6 +22,9 @@ tags:
 - `ghcr.io/<owner>/<repo>:X.Y.Z`
 - `ghcr.io/<owner>/<repo>:latest`
 
+A [prerelease](trunk.md) pushes `:X.Y.Z-canary.N` and `:canary` (its id)
+instead, and never moves `:latest`.
+
 The image gets the `org.opencontainers.image.version` and
 `org.opencontainers.image.source` labels, so GHCR links the package to the repo.
 The GitHub release gets a `docker pull <image>:X.Y.Z` block appended to its

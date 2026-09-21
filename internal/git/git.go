@@ -9,7 +9,9 @@ import (
 	"strings"
 )
 
-var remoteRe = regexp.MustCompile(`[:/]([^/:]+/[^/]+?)(?:\.git)?/?$`)
+// remoteRe takes owner/repo from a network remote (scp-like ssh, or http/https/ssh/git URLs).
+// Local paths and file:// remotes have no owner/repo.
+var remoteRe = regexp.MustCompile(`^(?:[\w.-]+@[\w.-]+:|(?:https?|ssh|git)://(?:[^@/]+@)?[^/]+/)([^/:]+/[^/]+?)(?:\.git)?/?$`)
 
 // Run executes git and returns trimmed stdout; errors carry stderr.
 func Run(args ...string) (string, error) {
@@ -25,9 +27,9 @@ func Run(args ...string) (string, error) {
 
 type RawCommit struct{ Hash, Message string }
 
-// Log returns commits in rev range rng, newest first.
-func Log(rng string) ([]RawCommit, error) {
-	out, err := Run("log", "--format=%H%x1f%B%x1e", rng)
+// Log returns the commits git log selects from revs (e.g. "v1.0.0..HEAD", or "HEAD", "^v1.0.0"), newest first.
+func Log(revs ...string) ([]RawCommit, error) {
+	out, err := Run(append([]string{"log", "--format=%H%x1f%B%x1e"}, revs...)...)
 	if err != nil {
 		return nil, err
 	}
@@ -51,6 +53,12 @@ func MergedTags() ([]string, error) {
 	return strings.Fields(out), err
 }
 
+// NearestTag returns the closest tag matching glob reachable from HEAD, "" if none.
+func NearestTag(glob string) string {
+	tag, _ := Run("describe", "--tags", "--abbrev=0", "--match", glob)
+	return tag
+}
+
 // Slug extracts "owner/repo" from a remote URL (ssh or https).
 func Slug(remote string) string {
 	if m := remoteRe.FindStringSubmatch(remote); m != nil {
@@ -64,11 +72,7 @@ func CommitTagPush(files []string, message, tag, branch string) error {
 	if _, err := Run(append([]string{"add", "--"}, files...)...); err != nil {
 		return err
 	}
-	args := []string{"commit", "-m", message}
-	if email, _ := Run("config", "user.email"); email == "" {
-		args = append([]string{"-c", "user.name=github-actions[bot]", "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com"}, args...)
-	}
-	if _, err := Run(args...); err != nil {
+	if _, err := Run(asBot("commit", "-m", message)...); err != nil {
 		return err
 	}
 	if _, err := Run("tag", tag); err != nil {
@@ -76,4 +80,39 @@ func CommitTagPush(files []string, message, tag, branch string) error {
 	}
 	_, err := Run("push", "--atomic", "origin", "HEAD:refs/heads/"+branch, "refs/tags/"+tag)
 	return err
+}
+
+// TagPush tags rev and pushes that tag alone.
+func TagPush(tag, rev string) error {
+	if _, err := Run("tag", tag, rev); err != nil {
+		return err
+	}
+	_, err := Run("push", "origin", "refs/tags/"+tag)
+	return err
+}
+
+// CommitPushBranch commits files on top of HEAD without moving the current branch, and force-pushes
+// that commit to branch. The working tree keeps the changes, staged.
+func CommitPushBranch(files []string, message, branch string) error {
+	if _, err := Run(append([]string{"add", "--"}, files...)...); err != nil {
+		return err
+	}
+	tree, err := Run("write-tree")
+	if err != nil {
+		return err
+	}
+	sha, err := Run(asBot("commit-tree", tree, "-p", "HEAD", "-m", message)...)
+	if err != nil {
+		return err
+	}
+	_, err = Run("push", "-f", "origin", sha+":refs/heads/"+branch)
+	return err
+}
+
+// asBot commits as github-actions[bot] when no identity is configured.
+func asBot(args ...string) []string {
+	if email, _ := Run("config", "user.email"); email == "" {
+		return append([]string{"-c", "user.name=github-actions[bot]", "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com"}, args...)
+	}
+	return args
 }

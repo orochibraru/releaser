@@ -91,7 +91,8 @@ run a dry run first:
 
 - Overrides merge with the defaults per key. semantic-release instead ignores
   the defaults for a commit once any custom rule matches it.
-- One release branch; no prerelease or maintenance channels.
+- One release branch; no maintenance channels. Prereleases are one id on that
+  branch ([canaries](trunk.md)), not a branch per channel.
 - No npm publish. Run it in `prepare`, or in a later step gated on
   `steps.<id>.outputs.released`.
 - Outside CI the CLI is a dry run, like semantic-release's `--no-ci` guard.
