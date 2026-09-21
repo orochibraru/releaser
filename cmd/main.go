@@ -12,7 +12,7 @@ import (
 type options struct {
 	branch, prepare, dockerImage, dockerPlatforms string
 	rules, commit, artifacts                      []string
-	docker, dryRun                                bool
+	docker, dryRun, draft                         bool
 }
 
 func main() {
@@ -26,6 +26,7 @@ func main() {
 	flag.BoolVar(&o.docker, "docker", false, "docker mode: build and push an image tagged <version> and latest")
 	flag.StringVar(&o.dockerImage, "docker-image", "", "image name (default ghcr.io/<owner>/<repo>)")
 	flag.StringVar(&o.dockerPlatforms, "docker-platforms", "", "e.g. linux/amd64,linux/arm64")
+	flag.BoolVar(&o.draft, "draft", false, "create the GitHub release as a draft, to publish it yourself once assets are attached")
 	flag.BoolVar(&o.dryRun, "dry-run", os.Getenv("CI") == "", "only print the next release (default outside CI)")
 	flag.Parse()
 	o.rules, o.commit, o.artifacts = split(rules), split(commit), split(artifacts)

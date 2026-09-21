@@ -40,7 +40,7 @@ func TestDockerExample(t *testing.T) {
 
 	// The GitHub release tells you how to pull the image; the CHANGELOG doesn't.
 	pull := "docker pull localhost:" + port + "/example:2.0.0"
-	if body := gh.releases[len(gh.releases)-1]["body"]; !strings.Contains(body, pull) {
+	if body := gh.releases[len(gh.releases)-1]["body"].(string); !strings.Contains(body, pull) {
 		t.Errorf("release body has no %q:\n%s", pull, body)
 	}
 	if strings.Contains(r.read("CHANGELOG.md"), "docker pull") {

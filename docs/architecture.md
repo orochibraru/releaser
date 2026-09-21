@@ -35,11 +35,12 @@ be on `PATH`.
 1. Skip unless on the release branch.
 2. Unshallow if needed, find the latest `vX.Y.Z` tag, read commits since it.
 3. Parse commits, compute the bump. No bump → stop.
-4. Render the notes. Dry run → print and stop.
+4. Render the notes. Dry run → print, write the `version` and `tag` outputs, and
+   stop.
 5. Prepend `CHANGELOG.md`, bump `package.json`, run `prepare`.
 6. Resolve artifacts, then build and push the Docker image.
 7. Commit, tag, and `git push --atomic` the branch and tag together.
-8. Create the GitHub release and upload artifacts.
+8. Create the GitHub release (a draft with `draft`) and upload artifacts.
 9. Write the `released`, `version`, `tag` outputs.
 
 Everything that can fail on bad input or a broken build (steps 5–6) runs before

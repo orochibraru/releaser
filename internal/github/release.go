@@ -15,10 +15,10 @@ import (
 	"github.com/orochibraru/releaser/internal/artifacts"
 )
 
-// CreateRelease publishes a release for tag and uploads assets to it.
-func CreateRelease(repo, token, tag, body string, assets []artifacts.Asset) error {
+// CreateRelease publishes a release for tag (or creates it as a draft) and uploads assets to it.
+func CreateRelease(repo, token, tag, body string, assets []artifacts.Asset, draft bool) error {
 	api := cmp.Or(os.Getenv("GITHUB_API_URL"), "https://api.github.com")
-	payload, _ := json.Marshal(map[string]string{"tag_name": tag, "name": tag, "body": body})
+	payload, _ := json.Marshal(map[string]any{"tag_name": tag, "name": tag, "body": body, "draft": draft})
 	var rel struct {
 		HTMLURL   string `json:"html_url"`
 		UploadURL string `json:"upload_url"`
@@ -37,7 +37,11 @@ func CreateRelease(repo, token, tag, body string, assets []artifacts.Asset) erro
 		}
 		fmt.Println("uploaded", a.Name)
 	}
-	fmt.Println("released", rel.HTMLURL)
+	if draft {
+		fmt.Println("created draft", rel.HTMLURL)
+	} else {
+		fmt.Println("released", rel.HTMLURL)
+	}
 	return nil
 }
 

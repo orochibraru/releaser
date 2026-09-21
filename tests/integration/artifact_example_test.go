@@ -17,13 +17,13 @@ func TestArtifactExample(t *testing.T) {
 
 	var tags []string
 	for _, rel := range gh.releases {
-		tags = append(tags, rel["tag_name"])
+		tags = append(tags, rel["tag_name"].(string))
 	}
 	if strings.Join(tags, " ") != "v1.0.0 v1.0.1 v1.1.0 v2.0.0" {
 		t.Fatalf("GitHub releases = %v", tags)
 	}
 	// The GitHub release body is the same text as the CHANGELOG entry.
-	if body := gh.releases[3]["body"]; !strings.Contains(r.read("CHANGELOG.md"), body) {
+	if body := gh.releases[3]["body"].(string); !strings.Contains(r.read("CHANGELOG.md"), body) {
 		t.Errorf("release notes not in CHANGELOG.md:\n%s", body)
 	}
 	for _, tag := range tags {

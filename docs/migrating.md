@@ -12,6 +12,7 @@ Delete `.releaserc.json`, the plugins in `package.json` and the
 | `exec` `prepareCmd`                             | `prepare`, with `${nextRelease.version}` → `${version}`.            |
 | `git` `assets`                                  | `CHANGELOG.md` and `package.json` built in, the rest via `commit`.  |
 | `github` `assets`                               | [`artifacts`](artifacts.md).                                        |
+| `github` `draftRelease: true`                   | `draft: true`.                                                      |
 | `tagFormat: "v${version}"`                      | Always `v${version}`.                                               |
 | `branches: ["main"]`                            | `branch`, default `main`.                                           |
 
@@ -71,6 +72,19 @@ becomes:
     rules: breaking=patch,feat=patch,docs=patch,refactor=patch
     prepare: bun scripts/bump-version.ts ${version} && bun run package:extension
     artifacts: dist/extension.zip=extension-${version}.zip
+```
+
+## Reading the next version first
+
+To stamp images or binaries with the upcoming version before the real release,
+run a dry run first:
+
+```yaml
+- id: next
+  uses: orochibraru/releaser@v1
+  with:
+    dry-run: "true"
+# steps.next.outputs.version is the upcoming version, empty if nothing to release
 ```
 
 ## Differences

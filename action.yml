@@ -30,8 +30,11 @@ inputs:
   docker-platforms:
     description: Build platforms, e.g. linux/amd64,linux/arm64 (needs docker/setup-qemu-action and docker/setup-buildx-action).
     default: ""
+  draft:
+    description: Create the GitHub release as a draft, to publish it yourself once assets are attached.
+    default: "false"
   dry-run:
-    description: Only print the next release.
+    description: Only print the next release. Still sets the version and tag outputs.
     default: "false"
   token:
     description: Token for the GitHub release, asset uploads and ghcr.io login.
@@ -42,10 +45,10 @@ outputs:
     description: '"true" if a release was made.'
     value: ${{ steps.release.outputs.released }}
   version:
-    description: The released version, e.g. 1.2.3.
+    description: The released version, e.g. 1.2.3. On a dry run, the version that would be released. Empty if nothing to release.
     value: ${{ steps.release.outputs.version }}
   tag:
-    description: The released tag, e.g. v1.2.3.
+    description: The released tag, e.g. v1.2.3. On a dry run, the tag that would be released. Empty if nothing to release.
     value: ${{ steps.release.outputs.tag }}
 
 runs:
@@ -65,6 +68,7 @@ runs:
         IN_DOCKER: ${{ inputs.docker }}
         IN_DOCKER_IMAGE: ${{ inputs.docker-image }}
         IN_DOCKER_PLATFORMS: ${{ inputs.docker-platforms }}
+        IN_DRAFT: ${{ inputs.draft }}
         IN_DRY_RUN: ${{ inputs.dry-run }}
       run: |
         set -euo pipefail
@@ -79,4 +83,4 @@ runs:
         chmod +x "$bin"
         "$bin" -branch "$IN_BRANCH" -rules "$IN_RULES" -prepare "$IN_PREPARE" -commit "$IN_COMMIT" \
           -artifacts "$IN_ARTIFACTS" -docker="$IN_DOCKER" -docker-image "$IN_DOCKER_IMAGE" \
-          -docker-platforms "$IN_DOCKER_PLATFORMS" -dry-run="$IN_DRY_RUN"
+          -docker-platforms "$IN_DOCKER_PLATFORMS" -draft="$IN_DRAFT" -dry-run="$IN_DRY_RUN"

@@ -87,6 +87,17 @@ func (r *repo) remoteTags() string {
 }
 
 func (r *repo) read(name string) string {
-	b, _ := os.ReadFile(filepath.Join(r.work, name))
+	return readFile(filepath.Join(r.work, name))
+}
+
+func (r *repo) write(name, data string) {
+	r.t.Helper()
+	if err := os.WriteFile(filepath.Join(r.work, name), []byte(data), 0o644); err != nil {
+		r.t.Fatal(err)
+	}
+}
+
+func readFile(path string) string {
+	b, _ := os.ReadFile(path)
 	return string(b)
 }

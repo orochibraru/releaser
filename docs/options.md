@@ -13,6 +13,7 @@ Every action input maps to a CLI flag of the same name.
     docker: false
     docker-image: ""
     docker-platforms: ""
+    draft: false
     dry-run: false
     token: ${{ github.token }}
 ```
@@ -27,16 +28,23 @@ Every action input maps to a CLI flag of the same name.
 | `docker`           | `false`                  | Enables [Docker mode](docker.md).                                                                                           |
 | `docker-image`     | `ghcr.io/<owner>/<repo>` | Image to push.                                                                                                              |
 | `docker-platforms` | —                        | e.g. `linux/amd64,linux/arm64`.                                                                                             |
+| `draft`            | `false`                  | Create the GitHub release as a draft, assets still attached. Publish it yourself (`gh release edit`).                       |
 | `dry-run`          | `false` in CI            | Only print the next version and notes. The CLI defaults to `true` when `CI` is unset.                                       |
 | `token`            | `github.token`           | Action only; the CLI reads `GITHUB_TOKEN` or `GH_TOKEN`. Used for the release, uploads and the ghcr.io login.               |
 
 ## Outputs
 
-| Output     | Example  | Description                    |
-| ---------- | -------- | ------------------------------ |
-| `released` | `true`   | `false` when nothing shipped.  |
-| `version`  | `1.2.3`  | Only set when `released=true`. |
-| `tag`      | `v1.2.3` | Only set when `released=true`. |
+| Output     | Example  | Description                                            |
+| ---------- | -------- | ------------------------------------------------------ |
+| `released` | `true`   | `false` when nothing shipped, dry runs included.       |
+| `version`  | `1.2.3`  | The version released, or that a dry run would release. |
+| `tag`      | `v1.2.3` | Same as `version`, with the `v`.                       |
+
+| Case                                | `released` | `version` |
+| ----------------------------------- | ---------- | --------- |
+| released                            | `true`     | set       |
+| dry run with a release pending      | `false`    | set       |
+| nothing to release, or wrong branch | `false`    | empty     |
 
 ```yaml
 - id: release
