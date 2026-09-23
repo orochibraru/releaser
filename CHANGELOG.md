@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.6.0](https://github.com/orochibraru/releaser/compare/v1.5.0...v1.6.0) (2026-09-23)
+
+### Features
+
+* cmd/releaser layout, security and devex fixes ([4b6bf08](https://github.com/orochibraru/releaser/commit/4b6bf08af3b9b03cc1e6f33b860e603c3344ae8b))
+
 ## [1.5.0](https://github.com/orochibraru/releaser/compare/v1.4.0...v1.5.0) (2026-09-21)
 
 ### Features

@@ -67,11 +67,11 @@ runs:
       shell: bash
       env:
         # Bumped by this repo's own release (see .github/workflows/ci.yml), with the SHA-256 of each binary.
-        RELEASER_VERSION: "1.5.0"
-        RELEASER_SHA256_LINUX_AMD64: "d1f68211e880de889165a692d1a302778f4313ac735727a6c8728928d9618d5a"
-        RELEASER_SHA256_LINUX_ARM64: "074de46e33ccbf64f4bc039a9d1f167e2677673fa6e64fc9bf202dd5d4d4c6f2"
-        RELEASER_SHA256_DARWIN_AMD64: "6fb7e4cb20c97f3b0f5c83b3cd1a748febd3db51e763b7ff8ff9942c03ff7bf2"
-        RELEASER_SHA256_DARWIN_ARM64: "94f6879aefe8f590b0be75dcdcfdb59c97e1522f0e1f6d9fe52986f0d642cd6b"
+        RELEASER_VERSION: "1.6.0"
+        RELEASER_SHA256_LINUX_AMD64: "5408ae99be8621446b8179c4d2dca00fff82b3eec845a24cb5cf77904bcea403"
+        RELEASER_SHA256_LINUX_ARM64: "cced8ae065401cb04b083eaa35f6cf02988fc74d2c2126581b0805136a1d4931"
+        RELEASER_SHA256_DARWIN_AMD64: "c4c3373d5d0f8a82db8264dae159e14702a434798474b2b7122f3584f83aacd4"
+        RELEASER_SHA256_DARWIN_ARM64: "ac5dc3f236df4eb8b5e14d8271a02938202b6c284800e7416ad724b53cb069fb"
         GITHUB_TOKEN: ${{ inputs.token }}
         IN_BRANCH: ${{ inputs.branch }}
         IN_RULES: ${{ inputs.rules }}
