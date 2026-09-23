@@ -46,6 +46,10 @@ That's it. On the next push with a `feat` or `fix` commit you get:
 The first release is always `1.0.0`. Shallow clones are fetched in full
 automatically, so `fetch-depth: 0` is optional.
 
+`@v1` follows the latest 1.x. To pin, use a release commit's SHA
+(`orochibraru/releaser@<sha> # vX.Y.Z`): `action.yml` at that commit pins the
+binary's version and checksum too.
+
 ## 3. Protected branches
 
 The default `github.token` can't push to a protected `main`: the push fails with

@@ -76,16 +76,9 @@ becomes:
 
 ## Reading the next version first
 
-To stamp images or binaries with the upcoming version before the real release,
-run a dry run first:
-
-```yaml
-- id: next
-  uses: orochibraru/releaser@v1
-  with:
-    dry-run: "true"
-# steps.next.outputs.version is the upcoming version, empty if nothing to release
-```
+`semantic-release --dry-run` to grab the version becomes a `dry-run: true` step
+and its `version` output; see
+[Reading the version first](options.md#reading-the-version-first).
 
 ## Differences
 

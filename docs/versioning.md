@@ -17,6 +17,9 @@ A commit is breaking when it has `!` after the type/scope or a
 entry in the notes' breaking changes section; with only `!`, the subject is
 used. Commits that don't match the format are ignored.
 
+With squash merges, GitHub uses the PR title as the commit subject, so that's
+what releaser reads: lint PR titles, not branch commits.
+
 ## Rules
 
 Each commit asks for a bump; the strongest one wins.
