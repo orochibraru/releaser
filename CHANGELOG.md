@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.7.0](https://github.com/orochibraru/releaser/compare/v1.6.0...v1.7.0) (2026-09-23)
+
+### Features
+
+* retry on runner err ([f030cbd](https://github.com/orochibraru/releaser/commit/f030cbd8b76ebcc11906a2b051dbcf782394d294))
+
+### Bug Fixes
+
+* gov ([87e3c0b](https://github.com/orochibraru/releaser/commit/87e3c0b659de9b30d82578ea9447ab29d80a6f1d))
+
 ## [1.6.0](https://github.com/orochibraru/releaser/compare/v1.5.0...v1.6.0) (2026-09-23)
 
 ### Features
