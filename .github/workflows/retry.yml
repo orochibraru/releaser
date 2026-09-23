@@ -1,0 +1,34 @@
+name: Retry
+
+# Reruns the failed jobs of a CI or Examples run once, only when the failure is the runner's (network,
+# TLS, lost runner), never the code's. A run that fails again stays red.
+on:
+  workflow_run:
+    workflows: [CI, Examples]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  rerun:
+    if: github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.run_attempt == 1
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN: ${{ github.event.workflow_run.id }}
+          PATTERN: "server certificate verification failed|unable to access 'https://github.com|Could not resolve host|Connection (timed out|reset)|lost communication with the server|runner has received a shutdown signal"
+        # Reads attempt 1 explicitly: someone may have rerun it by hand already, then nothing to do.
+        run: |
+          if [ "$(gh run view "$RUN" --json attempt --jq .attempt)" != 1 ]; then
+            echo "Run $RUN was already rerun."
+          elif gh run view "$RUN" --attempt 1 --log-failed | grep -Eq "$PATTERN"; then
+            echo "Runner failure, rerunning the failed jobs of run $RUN."
+            gh run rerun "$RUN" --failed
+          else
+            echo "Not a runner failure: leaving run $RUN red."
+          fi
