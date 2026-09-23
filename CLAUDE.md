@@ -49,7 +49,8 @@ what's inside. Don't collapse into fewer files.
 
 - `mise install` (go and prek, pinned in `mise.toml`), `prek install`, then
   hooks run on commit: gofmt, `go mod tidy -diff`, go vet,
-  `go test -short ./...`, prettier and markdownlint on Markdown.
+  `go test -short ./...`, prettier and markdownlint on Markdown, pinact on
+  workflows.
 - `go test ./...` is the full suite. Integration tests build the binary and
   release throwaway repos into local bare remotes, with a fake GitHub API
   (`fake_github_test.go`) and, for Docker, a `registry:3` container. Every
@@ -82,7 +83,8 @@ what's inside. Don't collapse into fewer files.
 - Actions in workflows and docs are pinned to their latest tag, checked with
   `git ls-remote --tags --refs`; a floating major only if that tag exists.
   Third-party actions in this repo's workflows (not `actions/*`, not docs) are
-  pinned by commit SHA with the tag in a comment. Workflows default to
+  pinned by commit SHA with the tag in a comment; the pinact hook enforces it
+  (`.pinact.yaml` exempts `actions/*`). Workflows default to
   `permissions: contents: read`.
 - `action.yml` pins a SHA-256 per prebuilt binary; the dogfood `prepare`
   rewrites them. Binaries are built with `-buildvcs=false` so the release PR and

@@ -49,7 +49,7 @@ Kotlin, C, Bun, and Docker mode.
 
 ```bash
 mise install    # go and prek, pinned in mise.toml
-prek install    # gofmt, go mod tidy, go vet, go test, prettier, markdownlint
+prek install    # gofmt, go mod tidy, go vet, go test, prettier, markdownlint, pinact
 go test ./...   # unit + integration, incl. the artifact and Docker examples (Docker needs Docker)
                 # the other examples run in the Examples workflow
 ```

@@ -23,6 +23,12 @@ repos:
 
   - repo: local
     hooks:
+      - id: pinact
+        name: Pin actions (pinact)
+        entry: pinact run
+        language: golang
+        additional_dependencies: [github.com/suzuki-shunsuke/pinact/v5/cmd/pinact@v5.0.0]
+        files: ^\.github/workflows/.*\.ya?ml$
       - id: gofmt
         name: gofmt
         entry: gofmt -l -w
