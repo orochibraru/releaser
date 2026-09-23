@@ -66,8 +66,12 @@ runs:
     - id: release
       shell: bash
       env:
-        # Bumped by this repo's own release (see .github/workflows/ci.yml).
+        # Bumped by this repo's own release (see .github/workflows/ci.yml), with the SHA-256 of each binary.
         RELEASER_VERSION: "1.5.0"
+        RELEASER_SHA256_LINUX_AMD64: "d1f68211e880de889165a692d1a302778f4313ac735727a6c8728928d9618d5a"
+        RELEASER_SHA256_LINUX_ARM64: "074de46e33ccbf64f4bc039a9d1f167e2677673fa6e64fc9bf202dd5d4d4c6f2"
+        RELEASER_SHA256_DARWIN_AMD64: "6fb7e4cb20c97f3b0f5c83b3cd1a748febd3db51e763b7ff8ff9942c03ff7bf2"
+        RELEASER_SHA256_DARWIN_ARM64: "94f6879aefe8f590b0be75dcdcfdb59c97e1522f0e1f6d9fe52986f0d642cd6b"
         GITHUB_TOKEN: ${{ inputs.token }}
         IN_BRANCH: ${{ inputs.branch }}
         IN_RULES: ${{ inputs.rules }}
@@ -87,9 +91,11 @@ runs:
         arch=$(tr '[:upper:]' '[:lower:]' <<< "$RUNNER_ARCH"); [ "$arch" = x64 ] && arch=amd64
         bin="$RUNNER_TEMP/releaser"
         url="https://github.com/orochibraru/releaser/releases/download/v$RELEASER_VERSION/releaser-$os-$arch"
-        if ! curl -fsSL -o "$bin" "$url"; then
-          echo "::notice::no prebuilt releaser v$RELEASER_VERSION for $os/$arch, building from source"
-          (cd "$GITHUB_ACTION_PATH" && go build -o "$bin" ./cmd)
+        sum="RELEASER_SHA256_$(tr a-z A-Z <<< "${os}_$arch")"
+        # A release asset can be replaced; action.yml at the pinned ref can't. Anything unverified is rebuilt.
+        if ! { curl -fsSL -o "$bin" "$url" && echo "${!sum:-}  $bin" | shasum -a 256 -c --status 2>/dev/null; }; then
+          echo "::notice::no prebuilt releaser v$RELEASER_VERSION for $os/$arch matching its checksum, building from source"
+          (cd "$GITHUB_ACTION_PATH" && go build -o "$bin" ./cmd/releaser)
         fi
         chmod +x "$bin"
         "$bin" -branch "$IN_BRANCH" -rules "$IN_RULES" -prepare "$IN_PREPARE" -commit "$IN_COMMIT" \

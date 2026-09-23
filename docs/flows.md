@@ -111,5 +111,5 @@ flowchart TD
 ```
 
 Every push comes last in its box: releases and canaries run `prepare`, artifacts
-and Docker first, the PR runs `prepare` first. A failure leaves the remote
-untouched.
+and Docker `:X.Y.Z` first, the PR runs `prepare` first. A failure leaves the
+remote untouched. Docker `:latest` or `:canary` moves after the push.

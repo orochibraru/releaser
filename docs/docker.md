@@ -30,8 +30,11 @@ The image gets the `org.opencontainers.image.version` and
 The GitHub release gets a `docker pull <image>:X.Y.Z` block appended to its
 notes (`CHANGELOG.md` doesn't).
 
-The push happens **before** the release commit and tag, so a failed build leaves
-the repository untouched.
+`:X.Y.Z` is pushed **before** the release commit and tag, so a failed build
+leaves the repository untouched. `:latest` (or `:canary`) moves last, after the
+tag and the GitHub release, so a rejected push never moves it. If moving it
+fails, the error gives the `docker buildx imagetools create` command to finish
+by hand.
 
 ## Registry and login
 

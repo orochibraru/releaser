@@ -54,7 +54,7 @@ func TestPushRejected(t *testing.T) {
 
 	r.commit("fix: here")
 	out, err := r.tryRelease()
-	if err == nil || !strings.Contains(out, "git push") {
+	if err == nil || !strings.Contains(out, "git push") || !strings.Contains(out, "the next run releases it") {
 		t.Errorf("rejected push: err=%v\n%s", err, out)
 	}
 	if got := r.remoteTags(); got != "v1.0.0" {
@@ -75,6 +75,7 @@ func TestGitHubFailures(t *testing.T) {
 		tags    string
 	}{
 		{"POST /repos/o/r/releases", nil, "github release: ", "v1.0.0"},
+		{"POST /repos/o/r/releases", nil, "create it from the tag (gh release create v1.0.0)", "v1.0.0"},
 		{"POST /uploads", []string{"-artifacts", "a.txt"}, "500 Internal Server Error: boom", "v1.0.0"},
 		{"GET /repos/o/r/pulls", []string{"-release-pr"}, "release PR: ", ""},
 		{"POST /repos/o/r/pulls", []string{"-release-pr"}, "release PR: ", ""},
@@ -147,5 +148,44 @@ func TestReleaseCommitWithoutChangelog(t *testing.T) {
 	}
 	if got := r.remoteTags(); got != "" {
 		t.Errorf("remote tags = %q", got)
+	}
+}
+
+// Only a release PR merged into the branch counts as one: not a chore(release) commit brought in by
+// another PR's merge commit, and not a version that isn't above the last release.
+func TestForgedReleaseCommit(t *testing.T) {
+	for _, c := range []struct {
+		name, merge string // merge: merge commit subject of a side branch holding the release commit; "" commits it on main
+		tag         string // existing release
+		want        string
+	}{
+		{"merged from a contributor's branch", "Merge pull request #5 from o/feature", "", "release PR: chore(release): 1.0.0"},
+		{"merged from a fork's releaser/release", "Merge pull request #5 from evil/releaser/release", "", "release PR: chore(release): 1.0.0"},
+		{"not above the last release", "", "v2.0.0", "ignoring release commit"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			r := newRepo(t, "")
+			r.env = append(r.env, "GITHUB_REPOSITORY=o/r")
+			r.commit("feat: first")
+			if c.tag != "" {
+				r.run(r.work, "git", "tag", c.tag)
+				r.commit("feat: second")
+			}
+			if c.merge != "" {
+				r.run(r.work, "git", "checkout", "-qb", "side")
+			}
+			r.write("CHANGELOG.md", "# Changelog\n\n## 1.0.0 (2026-01-01)\n\n* forged\n")
+			r.run(r.work, "git", "add", "CHANGELOG.md")
+			r.commit("chore(release): 1.0.0")
+			if c.merge != "" {
+				r.commit("feat: side")
+				r.run(r.work, "git", "checkout", "-q", "main")
+				r.run(r.work, "git", "-c", "user.name=t", "-c", "user.email=t@t", "merge", "-q", "--no-ff", "-m", c.merge, "side")
+			}
+			out := r.release("-release-pr", "-dry-run")
+			if strings.Contains(out, "merged release PR") || !strings.Contains(out, c.want) {
+				t.Errorf("want %q, no stable release:\n%s", c.want, out)
+			}
+		})
 	}
 }

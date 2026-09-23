@@ -25,7 +25,7 @@ func TestMain(m *testing.M) {
 	if coverDir != "" {
 		args = append(args, "-cover", "-coverpkg=../../cmd/...,../../internal/...")
 	}
-	if out, err := exec.Command("go", append(args, "../../cmd")...).CombinedOutput(); err != nil {
+	if out, err := exec.Command("go", append(args, "../../cmd/releaser")...).CombinedOutput(); err != nil {
 		panic(fmt.Sprintf("build: %v\n%s", err, out))
 	}
 	code := m.Run()

@@ -20,7 +20,8 @@ func TestReleasePR(t *testing.T) {
 	r.env = append(r.env, "GITHUB_OUTPUT="+outputs)
 	r.write("package.json", "{\n  \"name\": \"x\",\n  \"version\": \"0.0.0\"\n}\n")
 	r.run(r.work, "git", "add", "package.json")
-	args := []string{"-prerelease", "canary", "-release-pr", "-prepare", "echo ${version} > prepared.txt", "-commit", "prepared.txt"}
+	// prepare fails if it can see the token.
+	args := []string{"-prerelease", "canary", "-release-pr", "-prepare", `test -z "$GITHUB_TOKEN$GH_TOKEN" && echo ${version} > prepared.txt`, "-commit", "prepared.txt"}
 
 	// push lands msg on remote main, like a merged feature PR, then runs releaser in a fresh checkout.
 	push := func(msg string) string {

@@ -6,6 +6,10 @@ on:
     branches: [main, releaser/release]
   pull_request:
 
+# Read only by default; the release job asks for what it writes.
+permissions:
+  contents: read
+
 jobs:
   prek:
     runs-on: ubuntu-latest
@@ -14,7 +18,7 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - uses: j178/prek-action@v3.0.0
+      - uses: j178/prek-action@4e14d07f9231acabce116ccfca13b13dd9755ece # v3.0.0
 
   # Full suite, including the Docker example (prek runs it with -short).
   test:
@@ -31,6 +35,7 @@ jobs:
   release:
     needs: [prek, test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    concurrency: release
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -46,15 +51,19 @@ jobs:
           go-version-file: go.mod
       - id: release
         # A canary per push; stable releases through the release PR.
-        run: go run ./cmd -prerelease canary -release-pr -commit action.yml -artifacts 'dist/*' -prepare "$PREPARE"
+        run: go run ./cmd/releaser -prerelease canary -release-pr -commit action.yml -artifacts 'dist/*' -prepare "$PREPARE"
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          # Pin action.yml to the new version and cross-compile the binaries it downloads.
+          # Pin action.yml to the new version, cross-compile the binaries it downloads, pin their
+          # SHA-256. -buildvcs=false: the release PR and its merge must build the same bytes.
           PREPARE: |
             set -e
             sed -i -E 's/(RELEASER_VERSION: ).*/\1"${version}"/' action.yml
             for p in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
-              CGO_ENABLED=0 GOOS=${p%/*} GOARCH=${p#*/} go build -trimpath -ldflags="-s -w" -o "dist/releaser-${p%/*}-${p#*/}" ./cmd
+              out="dist/releaser-${p%/*}-${p#*/}"
+              CGO_ENABLED=0 GOOS=${p%/*} GOARCH=${p#*/} go build -trimpath -buildvcs=false -ldflags="-s -w" -o "$out" ./cmd/releaser
+              key=$(echo "${p%/*}_${p#*/}" | tr a-z A-Z)
+              sed -i -E "s/(RELEASER_SHA256_$key: ).*/\1\"$(sha256sum "$out" | cut -d' ' -f1)\"/" action.yml
             done
       # Marketplace users pin @v1: move the major tag to the new stable release (not HEAD
       # after a merge commit, and never to a canary).

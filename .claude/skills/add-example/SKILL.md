@@ -28,7 +28,7 @@ for a version stamped at build time).
    setup step with `if: matrix.example == '<name>'` at the action's latest tag
    (`git ls-remote --tags --refs`).
 3. Add the same row to the table in `examples/README.md`.
-4. Verify locally by running the job's steps by hand: build `./cmd` and
+4. Verify locally by running the job's steps by hand: build `./cmd/releaser` and
    `./tests/fakegithub`, copy the folder to a fresh repo with a bare remote, and
    run `.github/scripts/release-example.sh` for each commit with `RELEASER`,
    `PREPARE`, `ARTIFACTS`, `COMMIT` and `FLAGS` set. Lint with

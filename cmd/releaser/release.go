@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -23,6 +24,9 @@ import (
 const releaseBranch = "releaser/release"
 
 var prereleaseRe = regexp.MustCompile(`^[0-9A-Za-z-]+$`)
+
+// mergeRe matches GitHub's merge commit subject for a PR; the group is the head branch's owner.
+var mergeRe = regexp.MustCompile(`^Merge pull request #\d+ from ([^/\s]+)/` + regexp.QuoteMeta(releaseBranch) + `$`)
 
 type run struct {
 	o                    options
@@ -89,10 +93,12 @@ func release(o options) error {
 	}
 
 	if o.releasePR {
-		for _, c := range raw { // newest first
-			if version, ok := semver.FromReleaseCommit(c.Message); ok {
-				return r.stable(version, c.Hash)
-			}
+		version, sha, err := r.releaseCommit(since, prev, found)
+		if err != nil {
+			return err
+		}
+		if version != "" {
+			return r.stable(version, sha)
 		}
 	}
 
@@ -173,6 +179,39 @@ func (r run) direct(version, notes string) error {
 	return github.SetOutput("released=true", "version="+version, "tag="+tag, "prerelease=false")
 }
 
+// releaseCommit finds a merged release PR since the last release: a chore(release): X.Y.Z commit on
+// the first-parent chain (squash or rebase merge), or behind a merge commit of this repo's releaseBranch.
+// Commits that came in with any other PR never count, nor versions not above the last release: either
+// would let a contributor pick the version and the tagged tree.
+func (r run) releaseCommit(since []string, prev semver.Version, found bool) (version, sha string, err error) {
+	raw, err := git.Log(append([]string{"--first-parent"}, since...)...)
+	if err != nil {
+		return "", "", err
+	}
+	owner, _, _ := strings.Cut(r.repo, "/")
+	for _, c := range raw { // newest first
+		subject, _, _ := strings.Cut(c.Message, "\n")
+		if m := mergeRe.FindStringSubmatch(strings.TrimSpace(subject)); m != nil && m[1] == owner {
+			if c.Hash, err = git.Run("rev-parse", c.Hash+"^2"); err != nil {
+				return "", "", err
+			}
+			if c.Message, err = git.Run("log", "-1", "--format=%B", c.Hash); err != nil {
+				return "", "", err
+			}
+		}
+		v, ok := semver.FromReleaseCommit(c.Message)
+		if !ok {
+			continue
+		}
+		if _, next, _ := semver.Latest([]string{"v" + v}); found && slices.Compare(next[:], prev[:]) <= 0 {
+			fmt.Printf("ignoring release commit %s: %s is not above the last release %s\n", c.Hash[:min(7, len(c.Hash))], v, prev)
+			continue
+		}
+		return v, c.Hash, nil
+	}
+	return "", "", nil
+}
+
 // stable tags a merged release PR commit. The notes are its CHANGELOG.md entry.
 func (r run) stable(version, sha string) error {
 	tag := "v" + version
@@ -218,8 +257,9 @@ func (r run) releasePR(version, notes string) error {
 	return nil
 }
 
-// publish runs prepare, resolves artifacts and pushes the Docker image, then push (the git push),
-// then creates the GitHub release.
+// publish runs prepare, resolves artifacts and pushes the Docker image as :version, then push (the git
+// push), then creates the GitHub release and moves the image's alias (:latest or the prerelease id),
+// so a rejected push never moves the alias.
 func (r run) publish(version, notes string, prerelease bool, push func() error) error {
 	tag := "v" + version
 	if err := r.prepare(version); err != nil {
@@ -230,26 +270,31 @@ func (r run) publish(version, notes string, prerelease bool, push func() error) 
 		return err
 	}
 	body := notes // GitHub release body; CHANGELOG.md stays the plain notes
+	image := cmp.Or(r.o.dockerImage, "ghcr.io/"+strings.ToLower(r.repo))
 	if r.o.docker {
-		image := cmp.Or(r.o.dockerImage, "ghcr.io/"+strings.ToLower(r.repo))
-		alias := "latest"
-		if prerelease {
-			alias = r.o.prerelease
-		}
-		if err := docker.Push(image, r.o.dockerPlatforms, version, alias, r.repoURL, r.token); err != nil {
+		if err := docker.Push(image, r.o.dockerPlatforms, version, r.repoURL, r.token); err != nil {
 			return fmt.Errorf("docker: %w", err)
 		}
 		body += "\n### Docker\n\n```sh\ndocker pull " + image + ":" + version + "\n```\n"
 	}
 
 	if err := push(); err != nil {
-		return err
+		return fmt.Errorf("%w\nnothing released: if %s moved since this run started, the next run releases it", err, r.o.branch)
 	}
 	fmt.Println("pushed", tag)
 	if r.token == "" || r.repo == "" {
 		fmt.Println("no GITHUB_TOKEN or GitHub remote: skipping GitHub release")
 	} else if err := github.CreateRelease(r.repo, r.token, tag, body, assets, r.o.draft, prerelease); err != nil {
-		return fmt.Errorf("github release: %w", err)
+		return fmt.Errorf("github release: %w\n%s is pushed but has no GitHub release, and rerunning won't retry it: create it from the tag (gh release create %s)", err, tag, tag)
+	}
+	if r.o.docker {
+		alias := "latest"
+		if prerelease {
+			alias = r.o.prerelease
+		}
+		if err := docker.Alias(image, version, alias); err != nil {
+			return fmt.Errorf("docker: %w\n%s is released but :%s didn't move: docker buildx imagetools create -t %s:%s %s:%s", err, tag, alias, image, alias, image, version)
+		}
 	}
 	return nil
 }
@@ -260,6 +305,10 @@ func (r run) prepare(version string) error {
 	}
 	cmd := exec.Command("sh", "-c", strings.ReplaceAll(r.o.prepare, "${version}", version))
 	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+	// prepare runs build tools and their dependencies: keep the release token away from them.
+	cmd.Env = slices.DeleteFunc(os.Environ(), func(kv string) bool {
+		return strings.HasPrefix(kv, "GITHUB_TOKEN=") || strings.HasPrefix(kv, "GH_TOKEN=")
+	})
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("prepare: %w", err)
 	}

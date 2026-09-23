@@ -8,9 +8,9 @@ import (
 	"strings"
 )
 
-// Push tags image as :version and :alias (latest, or the prerelease id). Logs into ghcr.io itself when given a token;
-// other registries must be logged in beforehand (e.g. docker/login-action).
-func Push(image, platforms, version, alias, repoURL, token string) error {
+// Push builds and pushes image:version. Logs into ghcr.io itself when given a token; other registries
+// must be logged in beforehand (e.g. docker/login-action).
+func Push(image, platforms, version, repoURL, token string) error {
 	if strings.HasPrefix(image, "ghcr.io/") && token != "" {
 		login := exec.Command("docker", "login", "ghcr.io", "-u", cmp.Or(os.Getenv("GITHUB_ACTOR"), "x-access-token"), "--password-stdin")
 		login.Stdin, login.Stdout, login.Stderr = strings.NewReader(token), os.Stdout, os.Stderr
@@ -18,15 +18,23 @@ func Push(image, platforms, version, alias, repoURL, token string) error {
 			return err
 		}
 	}
-	args := []string{"buildx", "build", "--push", "-t", image + ":" + version, "-t", image + ":" + alias,
-		"--label", "org.opencontainers.image.version=" + version}
+	args := []string{"buildx", "build", "--push", "-t", image + ":" + version, "--label", "org.opencontainers.image.version=" + version}
 	if repoURL != "" {
 		args = append(args, "--label", "org.opencontainers.image.source="+repoURL)
 	}
 	if platforms != "" {
 		args = append(args, "--platform", platforms)
 	}
-	cmd := exec.Command("docker", append(args, ".")...)
+	return run(append(args, ".")...)
+}
+
+// Alias points image:alias (latest, or the prerelease id) at the pushed image:version, in the registry.
+func Alias(image, version, alias string) error {
+	return run("buildx", "imagetools", "create", "-t", image+":"+alias, image+":"+version)
+}
+
+func run(args ...string) error {
+	cmd := exec.Command("docker", args...)
 	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
 	return cmd.Run()
 }

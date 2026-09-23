@@ -25,7 +25,8 @@ works is in [docs/architecture.md](docs/architecture.md); inputs and flags in
 
 - Everything that can fail (prepare, artifact resolution, docker push) runs
   before one atomic push of commit and tag. A failed run leaves the remote
-  untouched; the tests check it.
+  untouched; the tests check it. Only the Docker alias (`:latest`) moves after
+  the push, so a rejected push never moves it.
 - `CHANGELOG.md` ends with exactly one newline (CI runs `end-of-file-fixer` on
   all files, including the release commit's output).
 - Default bumps are plain semver. Custom schemes are one `rules` input (e.g.
@@ -34,15 +35,15 @@ works is in [docs/architecture.md](docs/architecture.md); inputs and flags in
   and falls back to `go build`. The dogfood `release` job in `ci.yml` rewrites
   that pin in `prepare`, cross-compiles 4 binaries, and force-moves the major
   tag (`v1`), because Marketplace users pin `@v1`.
-- A flag change touches `cmd/main.go`, `action.yml` and `docs/options.md`
-  together. The `docs-sync-reviewer` agent checks this.
+- A flag change touches `cmd/releaser/main.go`, `action.yml` and
+  `docs/options.md` together. The `docs-sync-reviewer` agent checks this.
 
 ## Layout (the user's structure; keep it)
 
-`cmd/` is the CLI, `internal/<concern>/` the libraries, `tests/unit` and
+`cmd/releaser/` is the CLI (so `go install .../cmd/releaser` names the binary
+`releaser`), `internal/<concern>/` the libraries, `tests/unit` and
 `tests/integration` the tests, one file per concern and file names that say
-what's inside. Don't collapse into fewer files. `go install .../cmd` names the
-binary `cmd`; known and accepted.
+what's inside. Don't collapse into fewer files.
 
 ## Testing
 
@@ -69,8 +70,9 @@ binary `cmd`; known and accepted.
 
 ## Conventions
 
-- Conventional commits (`feat: ...`, `fix: ci`). The user commits and pushes; CI
-  releases from `main` as `chore(release): X.Y.Z [skip ci]`.
+- Conventional commits (`feat: ...`, `fix: ci`). The user commits and pushes. CI
+  ships a canary per push to `main` and keeps a release PR open; merging it
+  lands `chore(release): X.Y.Z (#N)` and tags the stable release.
 - Docs follow the svelte-smol convention: `docs/README.md` is the reading-order
   index, `docs/config.json` holds categories, titles and icons. The root README
   stays short and links to `docs/`; each table lives in one place. Check every
@@ -78,16 +80,18 @@ binary `cmd`; known and accepted.
 - Prettier rewraps Markdown (`proseWrap: always`, 80 columns) and realigns
   tables: keep its output. `CHANGELOG.md` is excluded from both Markdown hooks.
 - Actions in workflows and docs are pinned to their latest tag, checked with
-  `git ls-remote --tags --refs`; a floating major only if that tag exists
-  (`j178/prek-action` only has `v3.0.0`).
+  `git ls-remote --tags --refs`; a floating major only if that tag exists.
+  Third-party actions in this repo's workflows (not `actions/*`, not docs) are
+  pinned by commit SHA with the tag in a comment. Workflows default to
+  `permissions: contents: read`.
+- `action.yml` pins a SHA-256 per prebuilt binary; the dogfood `prepare`
+  rewrites them. Binaries are built with `-buildvcs=false` so the release PR and
+  its merge produce the same bytes.
 - Shell in `build.sh` and scripts is POSIX `sh`: `sed -i.bak` then delete the
   backup (BSD sed on the user's Mac, GNU in CI; no `\b` in BSD sed).
 
 ## Open items
 
-- The `main` ruleset (PR required, 2 status checks) rejects the dogfood release
-  push made with `github.token`. Needs a bypass actor or a token that can bypass
-  it (user's call, 2026-09-19).
 - The action is named "Releaser", probably taken on the Marketplace; rename
   before submitting.
 - Kotlin isn't installed locally; its example only runs in CI.

@@ -8,6 +8,8 @@ on:
   push:
     branches: [main]
 
+concurrency: release
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -66,10 +68,15 @@ current version and notes.
 
 Merge it any way (squash, merge commit, rebase). The push that lands it finds
 the `chore(release): X.Y.Z` commit (with or without GitHub's `(#N)` squash
-suffix) and releases it: tag `vX.Y.Z` on that commit, GitHub release with its
-`CHANGELOG.md` entry as notes, `prepare` again (not committed) to build
-artifacts, and Docker `:X.Y.Z` and `:latest`. That push makes no canary and no
-new PR; commits merged in the same push wait for the next one.
+suffix) and releases it. Only the release PR's commit counts: one on `branch`
+itself, or behind a merge of this repo's `releaser/release`. A
+`chore(release): X.Y.Z` commit brought in by another PR's merge commit, or not
+above the last release, is ignored. A rebase merge does put every commit of a PR
+on `branch`, so don't rebase-merge a contributor PR carrying such a commit. The
+release: tag `vX.Y.Z` on that commit, GitHub release with its `CHANGELOG.md`
+entry as notes, `prepare` again (not committed) to build artifacts, and Docker
+`:X.Y.Z` and `:latest`. That push makes no canary and no new PR; commits merged
+in the same push wait for the next one.
 
 The release commit has no `[skip ci]`, because merging it has to run the
 workflow.
@@ -105,7 +112,10 @@ tied to a person or an app, with a wider reach than one repo's key.
 ## Major tag for actions
 
 A GitHub Action that moves its major tag (`v1`) must skip canaries, and point it
-at the release tag (after a merge commit, that's not `HEAD`):
+at the release tag (after a merge commit, that's not `HEAD`). Canary tags are
+for binaries and images: a canary makes no commit, so an action pinning a binary
+version in `action.yml` (as this one does) still pins the last stable one at a
+canary tag.
 
 ```yaml
 - if:

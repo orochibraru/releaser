@@ -24,9 +24,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: orochibraru/releaser@v1
-        with:
+        with: # all optional
+          prepare: ./build.sh ${version} # builds dist/app.zip
           artifacts: dist/app.zip=app-${version}.zip
-          docker: true
+          docker: true # builds ./Dockerfile
 ```
 
 ## Documentation
@@ -49,5 +50,6 @@ Kotlin, C, Bun, and Docker mode.
 ```bash
 mise install    # go and prek, pinned in mise.toml
 prek install    # gofmt, go mod tidy, go vet, go test, prettier, markdownlint
-go test ./...   # unit + integration, incl. the examples (Docker one needs Docker)
+go test ./...   # unit + integration, incl. the artifact and Docker examples (Docker needs Docker)
+                # the other examples run in the Examples workflow
 ```

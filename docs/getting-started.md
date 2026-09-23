@@ -24,6 +24,8 @@ on:
   push:
     branches: [main]
 
+concurrency: release # one release at a time; queued pushes release after
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -46,26 +48,40 @@ automatically, so `fetch-depth: 0` is optional.
 
 ## 3. Protected branches
 
-The default `github.token` can't push to a protected `main`. Check out with a
-token that can, and pass it to the action:
+The default `github.token` can't push to a protected `main`: the push fails with
+`GH013: Repository rule violations`. releaser pushes through `origin`, so check
+out with a credential the ruleset lets through. A deploy key is the narrowest:
+
+1. `ssh-keygen -t ed25519 -N "" -f release`. Add `release.pub` as a deploy key
+   with write access, and `release` as the `RELEASE_DEPLOY_KEY` secret.
+2. In the ruleset on `main`, add **Deploy keys** to the bypass list.
+3. Check out with it. The action keeps `github.token` for the API.
 
 ```yaml
 - uses: actions/checkout@v7
   with:
-    token: ${{ secrets.RELEASE_TOKEN }}
+    ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
 - uses: orochibraru/releaser@v1
-  with:
-    token: ${{ secrets.RELEASE_TOKEN }}
 ```
+
+A PAT or GitHub App token (`token:` on both steps) works too, but only if its
+user or app is on the bypass list; admins aren't by default. It also reaches
+further than one repo's key. Pushes over either one trigger workflows, unlike
+`github.token`'s.
 
 ## 4. Try it locally
 
 ```bash
-go install github.com/orochibraru/releaser/cmd@latest
-cmd            # the binary is named after its folder; rename it to releaser
+go install github.com/orochibraru/releaser/cmd/releaser@latest
+releaser
 ```
 
+Or download `releaser-<os>-<arch>` from the
+[latest release](https://github.com/orochibraru/releaser/releases/latest).
+
 Outside CI (`CI` unset) it's a dry run: it prints the next version and its notes
-and touches nothing. Pass `-dry-run=false` to really release.
+and touches nothing. Pass `-dry-run=false` to really release. Only `branch`
+(`main`) releases; to preview from a feature branch, pass
+`-branch "$(git branch --show-current)"`.
 
 Next: [Inputs and flags](options.md).
