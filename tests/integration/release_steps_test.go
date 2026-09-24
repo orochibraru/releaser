@@ -16,39 +16,39 @@ var semverSteps = []struct{ msg, tag string }{
 }
 
 // releaseSteps plays semverSteps, releasing with args after each commit.
-func releaseSteps(t *testing.T, r *repo, args ...string) {
-	t.Helper()
-	for _, s := range semverSteps {
-		r.commit(s.msg)
-		out := r.release(args...)
-		if s.tag == "" {
+func releaseSteps(test *testing.T, repository *repo, args ...string) {
+	test.Helper()
+	for _, step := range semverSteps {
+		repository.commit(step.msg)
+		out := repository.release(args...)
+		if step.tag == "" {
 			if !strings.Contains(out, "no release-worthy commits") {
-				t.Fatalf("%q released:\n%s", s.msg, out)
+				test.Fatalf("%q released:\n%s", step.msg, out)
 			}
 			continue
 		}
-		if tags := strings.Fields(r.remoteTags()); tags[len(tags)-1] != s.tag {
-			t.Fatalf("%q: tags = %v, want last %s", s.msg, tags, s.tag)
+		if tags := strings.Fields(repository.remoteTags()); tags[len(tags)-1] != step.tag {
+			test.Fatalf("%q: tags = %v, want last %s", step.msg, tags, step.tag)
 		}
 	}
 }
 
 // checkChangelog asserts CHANGELOG.md holds every release from semverSteps, newest first,
 // with the right sections and nothing from non-release commits.
-func checkChangelog(t *testing.T, r *repo) {
-	t.Helper()
-	c := r.read("CHANGELOG.md")
-	if !strings.HasPrefix(c, "# Changelog\n\n## [2.0.0](") || strings.Count(c, "# Changelog") != 1 {
-		t.Errorf("CHANGELOG.md must start with one title then the newest release:\n%s", c)
+func checkChangelog(test *testing.T, repository *repo) {
+	test.Helper()
+	changelogFile := repository.read("CHANGELOG.md")
+	if !strings.HasPrefix(changelogFile, "# Changelog\n\n## [2.0.0](") || strings.Count(changelogFile, "# Changelog") != 1 {
+		test.Errorf("CHANGELOG.md must start with one title then the newest release:\n%s", changelogFile)
 	}
-	if !strings.HasSuffix(c, "\n") || strings.HasSuffix(c, "\n\n") {
-		t.Errorf("CHANGELOG.md must end with exactly one newline: %q", c[max(0, len(c)-20):])
+	if !strings.HasSuffix(changelogFile, "\n") || strings.HasSuffix(changelogFile, "\n\n") {
+		test.Errorf("CHANGELOG.md must end with exactly one newline: %q", changelogFile[max(0, len(changelogFile)-20):])
 	}
 
 	// Newest first; every heading but the first release links to its compare view.
 	last := -1
-	for i := len(semverSteps) - 1; i >= 0; i-- {
-		tag := semverSteps[i].tag
+	for index := len(semverSteps) - 1; index >= 0; index-- {
+		tag := semverSteps[index].tag
 		if tag == "" {
 			continue
 		}
@@ -56,9 +56,9 @@ func checkChangelog(t *testing.T, r *repo) {
 		if tag == "v1.0.0" {
 			heading = "## 1.0.0 ("
 		}
-		idx := strings.Index(c, heading)
+		idx := strings.Index(changelogFile, heading)
 		if idx <= last {
-			t.Errorf("heading %q missing or out of order in:\n%s", heading, c)
+			test.Errorf("heading %q missing or out of order in:\n%s", heading, changelogFile)
 		}
 		last = idx
 	}
@@ -70,11 +70,11 @@ func checkChangelog(t *testing.T, r *repo) {
 		"### Bug Fixes\n\n* **build:** smaller archive (",
 		"### Features\n\n* hello (",
 	} {
-		if !strings.Contains(c, want) {
-			t.Errorf("CHANGELOG.md missing %q:\n%s", want, c)
+		if !strings.Contains(changelogFile, want) {
+			test.Errorf("CHANGELOG.md missing %q:\n%s", want, changelogFile)
 		}
 	}
-	if strings.Contains(c, "tidy") {
-		t.Errorf("chore leaked into CHANGELOG.md:\n%s", c)
+	if strings.Contains(changelogFile, "tidy") {
+		test.Errorf("chore leaked into CHANGELOG.md:\n%s", changelogFile)
 	}
 }

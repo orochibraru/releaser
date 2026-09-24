@@ -34,6 +34,11 @@ repos:
         entry: gofmt -l -w
         language: system
         types: [go]
+      - id: short-names
+        name: No single-letter names
+        entry: go run ./.github/scripts/shortnames
+        language: system
+        types: [go]
       - id: go-mod-tidy
         name: go mod tidy
         entry: go mod tidy -diff

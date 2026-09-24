@@ -48,8 +48,8 @@ what's inside. Don't collapse into fewer files.
 ## Testing
 
 - `mise install` (go and prek, pinned in `mise.toml`), `prek install`, then
-  hooks run on commit: gofmt, `go mod tidy -diff`, go vet,
-  `go test -short ./...`, prettier and markdownlint on Markdown, pinact on
+  hooks run on commit: gofmt, no single-letter names, `go mod tidy -diff`, go
+  vet, `go test -short ./...`, prettier and markdownlint on Markdown, pinact on
   workflows.
 - `go test ./...` is the full suite. Integration tests build the binary and
   release throwaway repos into local bare remotes, with a fake GitHub API
@@ -71,6 +71,9 @@ what's inside. Don't collapse into fewer files.
 
 ## Conventions
 
+- No single-letter identifiers, `t`/`w`/`r` included: name what it is (`test`,
+  `writer`, `request`, `commit`). The `short-names` prek hook
+  (`.github/scripts/shortnames`, stdlib `go/ast`) fails the commit and CI.
 - Conventional commits (`feat: ...`, `fix: ci`). The user commits and pushes. CI
   ships a canary per push to `main` and keeps a release PR open; merging it
   lands `chore(release): X.Y.Z (#N)` and tags the stable release.

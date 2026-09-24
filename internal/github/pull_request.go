@@ -15,8 +15,8 @@ func UpsertPR(repo, token, head, base, title, body string) (string, error) {
 		Number  int    `json:"number"`
 		HTMLURL string `json:"html_url"`
 	}
-	q := url.Values{"head": {owner + ":" + head}, "base": {base}, "state": {"open"}}
-	if err := send(http.MethodGet, api()+"/repos/"+repo+"/pulls?"+q.Encode(), token, "application/json", nil, &open); err != nil {
+	query := url.Values{"head": {owner + ":" + head}, "base": {base}, "state": {"open"}}
+	if err := send(http.MethodGet, api()+"/repos/"+repo+"/pulls?"+query.Encode(), token, "application/json", nil, &open); err != nil {
 		return "", err
 	}
 	var pr struct {

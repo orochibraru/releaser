@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -22,83 +23,86 @@ type fakeGitHub struct {
 	failing  string           // requests whose "METHOD /path" starts with this get a 500
 }
 
-func newFakeGitHub(t *testing.T) *fakeGitHub {
-	f := &fakeGitHub{assets: map[string][]byte{}}
+func newFakeGitHub(test *testing.T) *fakeGitHub {
+	fake := &fakeGitHub{assets: map[string][]byte{}}
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /repos/o/r/releases", func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Authorization") != "Bearer test-token" {
-			http.Error(w, "bad token", http.StatusUnauthorized)
+	mux.HandleFunc("POST /repos/o/r/releases", func(writer http.ResponseWriter, request *http.Request) {
+		if request.Header.Get("Authorization") != "Bearer test-token" {
+			http.Error(writer, "bad token", http.StatusUnauthorized)
 			return
 		}
 		var rel map[string]any
-		if err := json.NewDecoder(r.Body).Decode(&rel); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+		if err := json.NewDecoder(request.Body).Decode(&rel); err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
 		}
-		f.mu.Lock()
-		f.releases = append(f.releases, rel)
-		f.mu.Unlock()
-		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]string{
-			"html_url":   f.URL + "/o/r/releases/" + fmt.Sprint(rel["tag_name"]),
-			"upload_url": f.URL + "/uploads/assets{?name,label}",
+		fake.mu.Lock()
+		fake.releases = append(fake.releases, rel)
+		fake.mu.Unlock()
+		writer.WriteHeader(http.StatusCreated)
+		json.NewEncoder(writer).Encode(map[string]string{
+			"html_url":   fake.URL + "/o/r/releases/" + fmt.Sprint(rel["tag_name"]),
+			"upload_url": fake.URL + "/uploads/assets{?name,label}",
 		})
 	})
-	mux.HandleFunc("POST /uploads/assets", func(w http.ResponseWriter, r *http.Request) {
-		data, _ := io.ReadAll(r.Body)
-		f.mu.Lock()
-		f.assets[r.URL.Query().Get("name")] = data
-		f.mu.Unlock()
-		w.WriteHeader(http.StatusCreated)
+	mux.HandleFunc("POST /uploads/assets", func(writer http.ResponseWriter, request *http.Request) {
+		data, _ := io.ReadAll(request.Body)
+		fake.mu.Lock()
+		fake.assets[request.URL.Query().Get("name")] = data
+		fake.mu.Unlock()
+		writer.WriteHeader(http.StatusCreated)
 	})
-	mux.HandleFunc("GET /repos/o/r/pulls", func(w http.ResponseWriter, r *http.Request) {
-		q := r.URL.Query()
+	mux.HandleFunc("GET /repos/o/r/pulls", func(writer http.ResponseWriter, request *http.Request) {
+		query := request.URL.Query()
 		open := []map[string]any{}
-		f.mu.Lock()
-		for i, pr := range f.pulls {
-			if "o:"+fmt.Sprint(pr["head"]) == q.Get("head") && pr["base"] == q.Get("base") && pr["state"] == q.Get("state") {
-				open = append(open, map[string]any{"number": i + 1, "html_url": f.URL + "/o/r/pull/" + fmt.Sprint(i+1)})
+		fake.mu.Lock()
+		for index, pr := range fake.pulls {
+			if "o:"+fmt.Sprint(pr["head"]) == query.Get("head") && pr["base"] == query.Get("base") && pr["state"] == query.Get("state") {
+				open = append(open, map[string]any{"number": index + 1, "html_url": fake.URL + "/o/r/pull/" + fmt.Sprint(index+1)})
 			}
 		}
-		f.mu.Unlock()
-		json.NewEncoder(w).Encode(open)
+		fake.mu.Unlock()
+		json.NewEncoder(writer).Encode(open)
 	})
-	mux.HandleFunc("POST /repos/o/r/pulls", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /repos/o/r/pulls", func(writer http.ResponseWriter, request *http.Request) {
 		var pr map[string]any
-		json.NewDecoder(r.Body).Decode(&pr)
+		json.NewDecoder(request.Body).Decode(&pr)
 		pr["state"] = "open"
-		f.mu.Lock()
-		f.pulls = append(f.pulls, pr)
-		n := len(f.pulls)
-		f.mu.Unlock()
-		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]string{"html_url": f.URL + "/o/r/pull/" + fmt.Sprint(n)})
+		fake.mu.Lock()
+		fake.pulls = append(fake.pulls, pr)
+		number := len(fake.pulls)
+		fake.mu.Unlock()
+		writer.WriteHeader(http.StatusCreated)
+		json.NewEncoder(writer).Encode(map[string]string{"html_url": fake.URL + "/o/r/pull/" + fmt.Sprint(number)})
 	})
-	mux.HandleFunc("PATCH /repos/o/r/pulls/{n}", func(w http.ResponseWriter, r *http.Request) {
-		n, _ := strconv.Atoi(r.PathValue("n"))
-		f.mu.Lock()
-		defer f.mu.Unlock()
-		if n < 1 || n > len(f.pulls) {
-			http.NotFound(w, r)
+	mux.HandleFunc("PATCH /repos/o/r/pulls/{n}", func(writer http.ResponseWriter, request *http.Request) {
+		number, _ := strconv.Atoi(request.PathValue("n"))
+		fake.mu.Lock()
+		defer fake.mu.Unlock()
+		if number < 1 || number > len(fake.pulls) {
+			http.NotFound(writer, request)
 			return
 		}
-		json.NewDecoder(r.Body).Decode(&f.pulls[n-1])
+		patched := maps.Clone(fake.pulls[number-1]) // a copy: the test may hold the old map
+		json.NewDecoder(request.Body).Decode(&patched)
+		fake.pulls[number-1] = patched
 	})
-	f.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f.mu.Lock()
-		fail := f.failing != "" && strings.HasPrefix(r.Method+" "+r.URL.Path, f.failing)
-		f.mu.Unlock()
+	fake.Server = httptest.NewUnstartedServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		fake.mu.Lock()
+		fail := fake.failing != "" && strings.HasPrefix(request.Method+" "+request.URL.Path, fake.failing)
+		fake.mu.Unlock()
 		if fail {
-			http.Error(w, "boom", http.StatusInternalServerError)
+			http.Error(writer, "boom", http.StatusInternalServerError)
 			return
 		}
-		mux.ServeHTTP(w, r)
+		mux.ServeHTTP(writer, request)
 	}))
-	t.Cleanup(f.Close)
-	return f
+	fake.Start() // after fake.Server is set: handlers read fake.URL
+	test.Cleanup(fake.Close)
+	return fake
 }
 
 // env points releaser at the fake as if it ran in Actions for o/r.
-func (f *fakeGitHub) env() []string {
-	return []string{"GITHUB_API_URL=" + f.URL, "GITHUB_TOKEN=test-token", "GITHUB_REPOSITORY=o/r"}
+func (fake *fakeGitHub) env() []string {
+	return []string{"GITHUB_API_URL=" + fake.URL, "GITHUB_TOKEN=test-token", "GITHUB_REPOSITORY=o/r"}
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/orochibraru/releaser/internal/git"
 )
 
-func TestSlug(t *testing.T) {
+func TestSlug(test *testing.T) {
 	for remote, want := range map[string]string{
 		"git@github.com:orochibraru/bercail.git":       "orochibraru/bercail",
 		"https://github.com/orochibraru/bercail":       "orochibraru/bercail",
@@ -20,7 +20,7 @@ func TestSlug(t *testing.T) {
 		"https://github.com/a/b/c.git":                 "",
 	} {
 		if got := git.Slug(remote); got != want {
-			t.Errorf("Slug(%q) = %q, want %q", remote, got, want)
+			test.Errorf("Slug(%q) = %q, want %q", remote, got, want)
 		}
 	}
 }

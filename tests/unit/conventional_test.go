@@ -6,7 +6,7 @@ import (
 	"github.com/orochibraru/releaser/internal/conventional"
 )
 
-func TestParse(t *testing.T) {
+func TestParse(test *testing.T) {
 	cases := []struct {
 		msg                 string
 		ok                  bool
@@ -20,41 +20,41 @@ func TestParse(t *testing.T) {
 		{"Merge branch 'x'", false, "", "", "", false, ""},
 		{"wip stuff", false, "", "", "", false, ""},
 	}
-	for _, c := range cases {
-		got, ok := conventional.Parse("abc", c.msg)
-		if ok != c.ok || got.Type != c.typ || got.Scope != c.scope || got.Subject != c.subject ||
-			got.Breaking != c.breaking || got.BreakingNote != c.breakingNote {
-			t.Errorf("Parse(%q) = %+v, %v", c.msg, got, ok)
+	for _, testCase := range cases {
+		got, ok := conventional.Parse("abc", testCase.msg)
+		if ok != testCase.ok || got.Type != testCase.typ || got.Scope != testCase.scope || got.Subject != testCase.subject ||
+			got.Breaking != testCase.breaking || got.BreakingNote != testCase.breakingNote {
+			test.Errorf("Parse(%q) = %+v, %v", testCase.msg, got, ok)
 		}
 	}
 }
 
-func TestBump(t *testing.T) {
+func TestBump(test *testing.T) {
 	feat := conventional.Commit{Type: "feat"}
 	breakingFix := conventional.Commit{Type: "fix", Breaking: true}
 	chore := conventional.Commit{Type: "chore"}
 
 	def, _ := conventional.ParseRules(nil)
 	if got := conventional.Bump([]conventional.Commit{chore}, def); got != conventional.None {
-		t.Errorf("chore bumped %d", got)
+		test.Errorf("chore bumped %d", got)
 	}
 	if got := conventional.Bump([]conventional.Commit{feat, chore}, def); got != conventional.Minor {
-		t.Errorf("feat = %d, want minor", got)
+		test.Errorf("feat = %d, want minor", got)
 	}
 	if got := conventional.Bump([]conventional.Commit{feat, breakingFix}, def); got != conventional.Major {
-		t.Errorf("breaking = %d, want major", got)
+		test.Errorf("breaking = %d, want major", got)
 	}
 
 	// The "everything is a patch" setup from bercail's .releaserc.json.
 	patchy, err := conventional.ParseRules([]string{"breaking=patch", "feat=patch", "docs=patch", "refactor=patch"})
 	if err != nil {
-		t.Fatal(err)
+		test.Fatal(err)
 	}
 	if got := conventional.Bump([]conventional.Commit{feat, breakingFix, {Type: "docs"}}, patchy); got != conventional.Patch {
-		t.Errorf("patchy = %d, want patch", got)
+		test.Errorf("patchy = %d, want patch", got)
 	}
 
 	if _, err := conventional.ParseRules([]string{"feat=huge"}); err == nil {
-		t.Error("bad level accepted")
+		test.Error("bad level accepted")
 	}
 }

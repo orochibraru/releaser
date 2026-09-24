@@ -20,33 +20,33 @@ func main() {
 		log.Fatal(err)
 	}
 
-	http.HandleFunc("POST /repos/{owner}/{repo}/releases", func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
+	http.HandleFunc("POST /repos/{owner}/{repo}/releases", func(writer http.ResponseWriter, request *http.Request) {
+		body, _ := io.ReadAll(request.Body)
 		var release struct {
 			Tag string `json:"tag_name"`
 		}
 		if err := json.Unmarshal(body, &release); err != nil || release.Tag == "" {
-			http.Error(w, "bad release payload", http.StatusBadRequest)
+			http.Error(writer, "bad release payload", http.StatusBadRequest)
 			return
 		}
 		if err := os.WriteFile(filepath.Join(*dir, filepath.Base(release.Tag)+".json"), body, 0o644); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]string{
+		writer.WriteHeader(http.StatusCreated)
+		json.NewEncoder(writer).Encode(map[string]string{
 			"html_url":   "http://" + *address + "/releases/" + release.Tag,
 			"upload_url": "http://" + *address + "/uploads{?name,label}",
 		})
 	})
-	http.HandleFunc("POST /uploads", func(w http.ResponseWriter, r *http.Request) {
-		data, _ := io.ReadAll(r.Body)
-		name := filepath.Base(r.URL.Query().Get("name"))
+	http.HandleFunc("POST /uploads", func(writer http.ResponseWriter, request *http.Request) {
+		data, _ := io.ReadAll(request.Body)
+		name := filepath.Base(request.URL.Query().Get("name"))
 		if err := os.WriteFile(filepath.Join(*dir, "assets", name), data, 0o644); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		w.WriteHeader(http.StatusCreated)
+		writer.WriteHeader(http.StatusCreated)
 	})
 	log.Fatal(http.ListenAndServe(*address, nil))
 }

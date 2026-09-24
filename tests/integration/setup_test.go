@@ -15,7 +15,7 @@ var bin string
 // coverDir, when set (by .github/scripts/coverage.sh), gets the coverage of every run of the binary.
 var coverDir = os.Getenv("RELEASER_COVERDIR")
 
-func TestMain(m *testing.M) {
+func TestMain(suite *testing.M) {
 	dir, err := os.MkdirTemp("", "releaser-bin")
 	if err != nil {
 		panic(err)
@@ -28,83 +28,83 @@ func TestMain(m *testing.M) {
 	if out, err := exec.Command("go", append(args, "../../cmd/releaser")...).CombinedOutput(); err != nil {
 		panic(fmt.Sprintf("build: %v\n%s", err, out))
 	}
-	code := m.Run()
+	code := suite.Run()
 	os.RemoveAll(dir)
 	os.Exit(code)
 }
 
 // repo is a work tree on main whose origin is a local bare remote.
 type repo struct {
-	t            *testing.T
+	test         *testing.T
 	work, remote string
 	env          []string
 }
 
 // newRepo copies src (an example dir, or "" for empty) into a fresh repo.
 // The env is isolated: no user git config, no GitHub context, CI on so it really releases.
-func newRepo(t *testing.T, src string) *repo {
-	t.Helper()
-	tmp := t.TempDir()
-	r := &repo{t: t, work: filepath.Join(tmp, "work"), remote: filepath.Join(tmp, "remote.git"),
+func newRepo(test *testing.T, src string) *repo {
+	test.Helper()
+	tmp := test.TempDir()
+	repository := &repo{test: test, work: filepath.Join(tmp, "work"), remote: filepath.Join(tmp, "remote.git"),
 		env: []string{"PATH=" + os.Getenv("PATH"), "HOME=" + tmp, "GIT_CONFIG_NOSYSTEM=1", "CI=true", "GOCOVERDIR=" + coverDir}}
-	r.run(tmp, "git", "init", "-q", "--bare", "-b", "main", r.remote)
+	repository.run(tmp, "git", "init", "-q", "--bare", "-b", "main", repository.remote)
 	if src != "" {
-		if err := os.CopyFS(r.work, os.DirFS(src)); err != nil {
-			t.Fatal(err)
+		if err := os.CopyFS(repository.work, os.DirFS(src)); err != nil {
+			test.Fatal(err)
 		}
 	}
-	r.run(tmp, "git", "init", "-q", "-b", "main", r.work)
-	r.run(r.work, "git", "remote", "add", "origin", r.remote)
-	r.run(r.work, "git", "add", ".")
-	return r
+	repository.run(tmp, "git", "init", "-q", "-b", "main", repository.work)
+	repository.run(repository.work, "git", "remote", "add", "origin", repository.remote)
+	repository.run(repository.work, "git", "add", ".")
+	return repository
 }
 
-func (r *repo) run(dir, name string, args ...string) string {
-	r.t.Helper()
+func (repository *repo) run(dir, name string, args ...string) string {
+	repository.test.Helper()
 	cmd := exec.Command(name, args...)
-	cmd.Dir, cmd.Env = dir, r.env
+	cmd.Dir, cmd.Env = dir, repository.env
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		r.t.Fatalf("%s %v: %v\n%s", name, args, err, out)
+		repository.test.Fatalf("%s %v: %v\n%s", name, args, err, out)
 	}
 	return string(out)
 }
 
-func (r *repo) commit(msg string) {
-	r.t.Helper()
-	r.run(r.work, "git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "--allow-empty", "-qm", msg)
+func (repository *repo) commit(msg string) {
+	repository.test.Helper()
+	repository.run(repository.work, "git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "--allow-empty", "-qm", msg)
 }
 
-func (r *repo) release(args ...string) string {
-	r.t.Helper()
-	return r.run(r.work, bin, args...)
+func (repository *repo) release(args ...string) string {
+	repository.test.Helper()
+	return repository.run(repository.work, bin, args...)
 }
 
 // tryRelease is release for runs expected to fail.
-func (r *repo) tryRelease(args ...string) (string, error) {
+func (repository *repo) tryRelease(args ...string) (string, error) {
 	cmd := exec.Command(bin, args...)
-	cmd.Dir, cmd.Env = r.work, r.env
+	cmd.Dir, cmd.Env = repository.work, repository.env
 	out, err := cmd.CombinedOutput()
 	return string(out), err
 }
 
-func (r *repo) remoteTags() string {
-	r.t.Helper()
-	return strings.TrimSpace(r.run(r.remote, "git", "tag", "--list"))
+func (repository *repo) remoteTags() string {
+	repository.test.Helper()
+	return strings.TrimSpace(repository.run(repository.remote, "git", "tag", "--list"))
 }
 
-func (r *repo) read(name string) string {
-	return readFile(filepath.Join(r.work, name))
+func (repository *repo) read(name string) string {
+	return readFile(filepath.Join(repository.work, name))
 }
 
-func (r *repo) write(name, data string) {
-	r.t.Helper()
-	if err := os.WriteFile(filepath.Join(r.work, name), []byte(data), 0o644); err != nil {
-		r.t.Fatal(err)
+func (repository *repo) write(name, data string) {
+	repository.test.Helper()
+	if err := os.WriteFile(filepath.Join(repository.work, name), []byte(data), 0o644); err != nil {
+		repository.test.Fatal(err)
 	}
 }
 
 func readFile(path string) string {
-	b, _ := os.ReadFile(path)
-	return string(b)
+	data, _ := os.ReadFile(path)
+	return string(data)
 }

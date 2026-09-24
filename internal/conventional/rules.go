@@ -23,11 +23,11 @@ var DefaultRules = map[string]string{"breaking": "major", "feat": "minor", "fix"
 func ParseRules(overrides []string) (map[string]string, error) {
 	rules := maps.Clone(DefaultRules)
 	for _, kv := range overrides {
-		k, v, _ := strings.Cut(kv, "=")
-		if _, ok := levels[v]; !ok {
+		key, levelName, _ := strings.Cut(kv, "=")
+		if _, ok := levels[levelName]; !ok {
 			return nil, fmt.Errorf("bad rule %q: level must be none, patch, minor or major", kv)
 		}
-		rules[k] = v
+		rules[key] = levelName
 	}
 	return rules, nil
 }
@@ -35,9 +35,9 @@ func ParseRules(overrides []string) (map[string]string, error) {
 // Bump returns the strongest level any commit asks for.
 func Bump(commits []Commit, rules map[string]string) int {
 	lvl := None
-	for _, c := range commits {
-		lvl = max(lvl, levels[rules[c.Type]])
-		if c.Breaking {
+	for _, commit := range commits {
+		lvl = max(lvl, levels[rules[commit.Type]])
+		if commit.Breaking {
 			lvl = max(lvl, levels[rules["breaking"]])
 		}
 	}

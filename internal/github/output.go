@@ -11,11 +11,11 @@ func SetOutput(lines ...string) error {
 	if path == "" {
 		return nil
 	}
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o644)
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o644)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	_, err = f.WriteString(strings.Join(lines, "\n") + "\n")
+	defer file.Close()
+	_, err = file.WriteString(strings.Join(lines, "\n") + "\n")
 	return err
 }

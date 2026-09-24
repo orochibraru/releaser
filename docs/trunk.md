@@ -95,8 +95,10 @@ suffix) and:
 - runs `prepare` again (nothing committed) and uploads artifacts;
 - pushes Docker `:X.Y.Z` and moves `:latest`.
 
-That push makes no canary and no new PR. Commits merged in the same push wait
-for the next one.
+That push makes no canary and no new PR. Only a merge that is the push's tip
+counts: if other commits land on top before its run succeeds, or its stable run
+is refused, the next push cuts a new canary and rebuilds the release PR instead;
+merge that one.
 
 ### Which commits count
 

@@ -61,8 +61,8 @@ func NearestTag(glob string) string {
 
 // Slug extracts "owner/repo" from a remote URL (ssh or https).
 func Slug(remote string) string {
-	if m := remoteRe.FindStringSubmatch(remote); m != nil {
-		return m[1]
+	if match := remoteRe.FindStringSubmatch(remote); match != nil {
+		return match[1]
 	}
 	return ""
 }

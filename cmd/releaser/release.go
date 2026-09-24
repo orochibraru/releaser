@@ -29,50 +29,50 @@ var prereleaseRe = regexp.MustCompile(`^[0-9A-Za-z-]+$`)
 var mergeRe = regexp.MustCompile(`^Merge pull request #\d+ from ([^/\s]+)/` + regexp.QuoteMeta(releaseBranch) + `$`)
 
 type run struct {
-	o                    options
+	flags                options
 	repo, repoURL, token string
 }
 
 // release picks the phase for this push:
-//   - with -release-pr, a merged release PR commit since the last release → tag it (stable);
+//   - with -release-pr, a merged release PR at HEAD → tag its release commit (stable);
 //   - otherwise with -prerelease → tag HEAD as the next prerelease, and/or with -release-pr → update the PR;
 //   - neither flag → release commit and tag, pushed together (direct).
 //
 // Every phase runs everything that can fail before its one push, so a failed run leaves the remote untouched.
-func release(o options) error {
-	rules, err := conventional.ParseRules(o.rules)
+func release(flags options) error {
+	rules, err := conventional.ParseRules(flags.rules)
 	if err != nil {
 		return err
 	}
-	if o.prerelease != "" && !prereleaseRe.MatchString(o.prerelease) {
-		return fmt.Errorf("bad prerelease id %q: letters, digits and hyphens only", o.prerelease)
+	if flags.prerelease != "" && !prereleaseRe.MatchString(flags.prerelease) {
+		return fmt.Errorf("bad prerelease id %q: letters, digits and hyphens only", flags.prerelease)
 	}
 
 	branch := os.Getenv("GITHUB_REF_NAME")
 	if branch == "" {
 		branch, _ = git.Run("rev-parse", "--abbrev-ref", "HEAD")
 	}
-	if branch != o.branch {
-		fmt.Printf("on %q, releases only happen on %q: skipping\n", branch, o.branch)
+	if branch != flags.branch {
+		fmt.Printf("on %q, releases only happen on %q: skipping\n", branch, flags.branch)
 		return github.SetOutput("released=false")
 	}
 
-	r := run{o: o, token: cmp.Or(os.Getenv("GITHUB_TOKEN"), os.Getenv("GH_TOKEN")), repo: os.Getenv("GITHUB_REPOSITORY")}
-	if r.repo == "" {
+	releaser := run{flags: flags, token: cmp.Or(os.Getenv("GITHUB_TOKEN"), os.Getenv("GH_TOKEN")), repo: os.Getenv("GITHUB_REPOSITORY")}
+	if releaser.repo == "" {
 		remote, _ := git.Run("remote", "get-url", "origin")
-		r.repo = git.Slug(remote)
+		releaser.repo = git.Slug(remote)
 	}
-	if r.repo != "" {
-		r.repoURL = cmp.Or(os.Getenv("GITHUB_SERVER_URL"), "https://github.com") + "/" + r.repo
+	if releaser.repo != "" {
+		releaser.repoURL = cmp.Or(os.Getenv("GITHUB_SERVER_URL"), "https://github.com") + "/" + releaser.repo
 	}
-	if !o.dryRun {
-		if len(o.artifacts) > 0 && r.token == "" {
+	if !flags.dryRun {
+		if len(flags.artifacts) > 0 && releaser.token == "" {
 			return fmt.Errorf("artifact mode needs GITHUB_TOKEN")
 		}
-		if o.docker && r.repo == "" && o.dockerImage == "" {
+		if flags.docker && releaser.repo == "" && flags.dockerImage == "" {
 			return fmt.Errorf("docker mode needs -docker-image (no GitHub remote found)")
 		}
-		if o.releasePR && (r.token == "" || r.repo == "") {
+		if flags.releasePR && (releaser.token == "" || releaser.repo == "") {
 			return fmt.Errorf("release PR mode needs GITHUB_TOKEN and a GitHub remote")
 		}
 	}
@@ -92,13 +92,13 @@ func release(o options) error {
 		return err
 	}
 
-	if o.releasePR {
-		version, sha, err := r.releaseCommit(since, prev, found)
+	if flags.releasePR {
+		version, sha, err := releaser.releaseCommit(since, prev, found)
 		if err != nil {
 			return err
 		}
 		if version != "" {
-			return r.stable(version, sha)
+			return releaser.stable(version, sha)
 		}
 	}
 
@@ -112,19 +112,21 @@ func release(o options) error {
 	if found {
 		next = prev.Next(level)
 	}
-	notes := func(tag string) string { return changelog.Notes(r.repoURL, prevTag, tag, time.Now().UTC(), commits) }
+	notes := func(tag string) string {
+		return changelog.Notes(releaser.repoURL, prevTag, tag, time.Now().UTC(), commits)
+	}
 
-	if o.prerelease == "" && !o.releasePR {
-		return r.direct(next.String(), notes(next.Tag()))
+	if flags.prerelease == "" && !flags.releasePR {
+		return releaser.direct(next.String(), notes(next.Tag()))
 	}
 	outputs := []string{"released=false"}
-	if o.dryRun { // what the release PR would release; a pending canary below takes over
+	if flags.dryRun { // what the release PR would release; a pending canary below takes over
 		outputs = []string{"released=false", "version=" + next.String(), "tag=" + next.Tag(), "prerelease=false"}
 	}
-	if o.prerelease != "" {
+	if flags.prerelease != "" {
 		// Only what landed since the last prerelease can make a new one.
 		fresh := since
-		if last := git.NearestTag("v*-" + o.prerelease + ".*"); last != "" {
+		if last := git.NearestTag("v*-" + flags.prerelease + ".*"); last != "" {
 			fresh = append(fresh, "^"+last)
 		}
 		newer, err := git.Log(fresh...)
@@ -132,37 +134,37 @@ func release(o options) error {
 			return err
 		}
 		if conventional.Bump(parse(newer), rules) == conventional.None {
-			fmt.Println("no release-worthy commits since the last", o.prerelease, "prerelease")
+			fmt.Println("no release-worthy commits since the last", flags.prerelease, "prerelease")
 		} else {
-			version := next.Pre(o.prerelease, tags)
+			version := next.Pre(flags.prerelease, tags)
 			tag := "v" + version
-			if o.dryRun {
+			if flags.dryRun {
 				fmt.Printf("next prerelease: %s\n\n%s\n", tag, notes(tag))
 				outputs = []string{"released=false", "version=" + version, "tag=" + tag, "prerelease=true"}
 			} else {
-				if err := r.publish(version, notes(tag), true, func() error { return git.TagPush(tag, "HEAD") }); err != nil {
+				if err := releaser.publish(version, notes(tag), true, func() error { return git.TagPush(tag, "HEAD") }); err != nil {
 					return err
 				}
 				outputs = []string{"released=true", "version=" + version, "tag=" + tag, "prerelease=true"}
 			}
 		}
 	}
-	if o.releasePR {
-		if err := r.releasePR(next.String(), notes(next.Tag())); err != nil {
+	if flags.releasePR {
+		if err := releaser.releasePR(next.String(), notes(next.Tag())); err != nil {
 			return err
 		}
 	}
-	if o.dryRun {
+	if flags.dryRun {
 		fmt.Println("dry run: nothing written (pass -dry-run=false or set CI to release)")
 	}
 	return github.SetOutput(outputs...)
 }
 
 // direct makes the release commit and pushes it with its tag.
-func (r run) direct(version, notes string) error {
+func (releaser run) direct(version, notes string) error {
 	tag := "v" + version
 	fmt.Printf("next release: %s\n\n%s\n", tag, notes)
-	if r.o.dryRun {
+	if releaser.flags.dryRun {
 		fmt.Println("dry run: nothing written (pass -dry-run=false or set CI to release)")
 		return github.SetOutput("released=false", "version="+version, "tag="+tag, "prerelease=false")
 	}
@@ -171,49 +173,49 @@ func (r run) direct(version, notes string) error {
 		return err
 	}
 	push := func() error {
-		return git.CommitTagPush(append(files, r.o.commit...), "chore(release): "+version+" [skip ci]\n\n"+notes, tag, r.o.branch)
+		return git.CommitTagPush(append(files, releaser.flags.commit...), "chore(release): "+version+" [skip ci]\n\n"+notes, tag, releaser.flags.branch)
 	}
-	if err := r.publish(version, notes, false, push); err != nil {
+	if err := releaser.publish(version, notes, false, push); err != nil {
 		return err
 	}
 	return github.SetOutput("released=true", "version="+version, "tag="+tag, "prerelease=false")
 }
 
-// releaseCommit finds a merged release PR since the last release: a chore(release): X.Y.Z commit on
-// the first-parent chain (squash or rebase merge), or behind a merge commit of this repo's releaseBranch.
-// Commits that came in with any other PR never count, nor versions not above the last release: either
-// would let a contributor pick the version and the tagged tree.
-func (r run) releaseCommit(since []string, prev semver.Version, found bool) (version, sha string, err error) {
-	raw, err := git.Log(append([]string{"--first-parent"}, since...)...)
-	if err != nil {
+// releaseCommit finds a merged release PR at HEAD: HEAD is a chore(release): X.Y.Z commit (squash or
+// rebase merge), or a merge commit of this repo's releaseBranch with that commit behind it. Only HEAD
+// counts: a release commit deeper down was never tagged (its run failed or was refused), and taking it
+// again on every push would block canaries and the release PR for good. Commits that came in with any
+// other PR never count, nor versions not above the last release: either would let a contributor pick
+// the version and the tagged tree.
+func (releaser run) releaseCommit(since []string, prev semver.Version, found bool) (version, sha string, err error) {
+	raw, err := git.Log(append([]string{"-1", "--first-parent"}, since...)...)
+	if err != nil || len(raw) == 0 {
 		return "", "", err
 	}
-	owner, _, _ := strings.Cut(r.repo, "/")
-	for _, c := range raw { // newest first
-		subject, _, _ := strings.Cut(c.Message, "\n")
-		if m := mergeRe.FindStringSubmatch(strings.TrimSpace(subject)); m != nil && m[1] == owner {
-			if c.Hash, err = git.Run("rev-parse", c.Hash+"^2"); err != nil {
-				return "", "", err
-			}
-			if c.Message, err = git.Run("log", "-1", "--format=%B", c.Hash); err != nil {
-				return "", "", err
-			}
+	commit := raw[0]
+	owner, _, _ := strings.Cut(releaser.repo, "/")
+	subject, _, _ := strings.Cut(commit.Message, "\n")
+	if match := mergeRe.FindStringSubmatch(strings.TrimSpace(subject)); match != nil && match[1] == owner {
+		if commit.Hash, err = git.Run("rev-parse", commit.Hash+"^2"); err != nil {
+			return "", "", err
 		}
-		v, ok := semver.FromReleaseCommit(c.Message)
-		if !ok {
-			continue
+		if commit.Message, err = git.Run("log", "-1", "--format=%B", commit.Hash); err != nil {
+			return "", "", err
 		}
-		if _, next, _ := semver.Latest([]string{"v" + v}); found && slices.Compare(next[:], prev[:]) <= 0 {
-			fmt.Printf("ignoring release commit %s: %s is not above the last release %s\n", c.Hash[:min(7, len(c.Hash))], v, prev)
-			continue
-		}
-		return v, c.Hash, nil
 	}
-	return "", "", nil
+	candidate, ok := semver.FromReleaseCommit(commit.Message)
+	if !ok {
+		return "", "", nil
+	}
+	if _, next, _ := semver.Latest([]string{"v" + candidate}); found && slices.Compare(next[:], prev[:]) <= 0 {
+		fmt.Printf("ignoring release commit %s: %s is not above the last release %s\n", commit.Hash[:min(7, len(commit.Hash))], candidate, prev)
+		return "", "", nil
+	}
+	return candidate, commit.Hash, nil
 }
 
 // stable tags a merged release PR commit. The notes are its CHANGELOG.md entry.
-func (r run) stable(version, sha string) error {
+func (releaser run) stable(version, sha string) error {
 	tag := "v" + version
 	log, err := git.Run("show", sha+":CHANGELOG.md")
 	if err != nil {
@@ -221,11 +223,11 @@ func (r run) stable(version, sha string) error {
 	}
 	notes := changelog.Latest(log + "\n")
 	fmt.Printf("merged release PR %s: releasing %s\n\n%s\n", sha[:min(7, len(sha))], tag, notes)
-	if r.o.dryRun {
+	if releaser.flags.dryRun {
 		fmt.Println("dry run: nothing written (pass -dry-run=false or set CI to release)")
 		return github.SetOutput("released=false", "version="+version, "tag="+tag, "prerelease=false")
 	}
-	if err := r.publish(version, notes, false, func() error { return git.TagPush(tag, sha) }); err != nil {
+	if err := releaser.publish(version, notes, false, func() error { return git.TagPush(tag, sha) }); err != nil {
 		return err
 	}
 	return github.SetOutput("released=true", "version="+version, "tag="+tag, "prerelease=false")
@@ -233,23 +235,23 @@ func (r run) stable(version, sha string) error {
 
 // releasePR force-pushes the release commit to releaseBranch and opens or updates its PR.
 // No [skip ci]: merging the PR must run releaser, which then finds the commit and tags it.
-func (r run) releasePR(version, notes string) error {
+func (releaser run) releasePR(version, notes string) error {
 	title := "chore(release): " + version
 	fmt.Printf("release PR: %s\n\n%s\n", title, notes)
-	if r.o.dryRun {
+	if releaser.flags.dryRun {
 		return nil
 	}
 	files, err := bumpFiles(version, notes)
 	if err != nil {
 		return err
 	}
-	if err := r.prepare(version); err != nil {
+	if err := releaser.prepare(version); err != nil {
 		return err
 	}
-	if err := git.CommitPushBranch(append(files, r.o.commit...), title+"\n\n"+notes, releaseBranch); err != nil {
+	if err := git.CommitPushBranch(append(files, releaser.flags.commit...), title+"\n\n"+notes, releaseBranch); err != nil {
 		return err
 	}
-	url, err := github.UpsertPR(r.repo, r.token, releaseBranch, r.o.branch, title, notes)
+	url, err := github.UpsertPR(releaser.repo, releaser.token, releaseBranch, releaser.flags.branch, title, notes)
 	if err != nil {
 		return fmt.Errorf("release PR: %w", err)
 	}
@@ -260,37 +262,37 @@ func (r run) releasePR(version, notes string) error {
 // publish runs prepare, resolves artifacts and pushes the Docker image as :version, then push (the git
 // push), then creates the GitHub release and moves the image's alias (:latest or the prerelease id),
 // so a rejected push never moves the alias.
-func (r run) publish(version, notes string, prerelease bool, push func() error) error {
+func (releaser run) publish(version, notes string, prerelease bool, push func() error) error {
 	tag := "v" + version
-	if err := r.prepare(version); err != nil {
+	if err := releaser.prepare(version); err != nil {
 		return err
 	}
-	assets, err := artifacts.Resolve(r.o.artifacts, version)
+	assets, err := artifacts.Resolve(releaser.flags.artifacts, version)
 	if err != nil {
 		return err
 	}
 	body := notes // GitHub release body; CHANGELOG.md stays the plain notes
-	image := cmp.Or(r.o.dockerImage, "ghcr.io/"+strings.ToLower(r.repo))
-	if r.o.docker {
-		if err := docker.Push(image, r.o.dockerPlatforms, version, r.repoURL, r.token); err != nil {
+	image := cmp.Or(releaser.flags.dockerImage, "ghcr.io/"+strings.ToLower(releaser.repo))
+	if releaser.flags.docker {
+		if err := docker.Push(image, releaser.flags.dockerPlatforms, version, releaser.repoURL, releaser.token); err != nil {
 			return fmt.Errorf("docker: %w", err)
 		}
 		body += "\n### Docker\n\n```sh\ndocker pull " + image + ":" + version + "\n```\n"
 	}
 
 	if err := push(); err != nil {
-		return fmt.Errorf("%w\nnothing released: if %s moved since this run started, the next run releases it", err, r.o.branch)
+		return fmt.Errorf("%w\nnothing released: if %s moved since this run started, the next run releases it", err, releaser.flags.branch)
 	}
 	fmt.Println("pushed", tag)
-	if r.token == "" || r.repo == "" {
+	if releaser.token == "" || releaser.repo == "" {
 		fmt.Println("no GITHUB_TOKEN or GitHub remote: skipping GitHub release")
-	} else if err := github.CreateRelease(r.repo, r.token, tag, body, assets, r.o.draft, prerelease); err != nil {
+	} else if err := github.CreateRelease(releaser.repo, releaser.token, tag, body, assets, releaser.flags.draft, prerelease); err != nil {
 		return fmt.Errorf("github release: %w\n%s is pushed but has no GitHub release, and rerunning won't retry it: create it from the tag (gh release create %s)", err, tag, tag)
 	}
-	if r.o.docker {
+	if releaser.flags.docker {
 		alias := "latest"
 		if prerelease {
-			alias = r.o.prerelease
+			alias = releaser.flags.prerelease
 		}
 		if err := docker.Alias(image, version, alias); err != nil {
 			return fmt.Errorf("docker: %w\n%s is released but :%s didn't move: docker buildx imagetools create -t %s:%s %s:%s", err, tag, alias, image, alias, image, version)
@@ -299,11 +301,11 @@ func (r run) publish(version, notes string, prerelease bool, push func() error) 
 	return nil
 }
 
-func (r run) prepare(version string) error {
-	if r.o.prepare == "" {
+func (releaser run) prepare(version string) error {
+	if releaser.flags.prepare == "" {
 		return nil
 	}
-	cmd := exec.Command("sh", "-c", strings.ReplaceAll(r.o.prepare, "${version}", version))
+	cmd := exec.Command("sh", "-c", strings.ReplaceAll(releaser.flags.prepare, "${version}", version))
 	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
 	// prepare runs build tools and their dependencies: keep the release token away from them.
 	cmd.Env = slices.DeleteFunc(os.Environ(), func(kv string) bool {
@@ -331,9 +333,12 @@ func bumpFiles(version, notes string) ([]string, error) {
 
 func parse(raw []git.RawCommit) []conventional.Commit {
 	var commits []conventional.Commit
-	for _, r := range raw {
-		if c, ok := conventional.Parse(r.Hash, r.Message); ok {
-			commits = append(commits, c)
+	for _, rawCommit := range raw {
+		if _, ok := semver.FromReleaseCommit(rawCommit.Message); ok { // an untagged release PR merge, even under a chore rule
+			continue
+		}
+		if commit, ok := conventional.Parse(rawCommit.Hash, rawCommit.Message); ok {
+			commits = append(commits, commit)
 		}
 	}
 	return commits

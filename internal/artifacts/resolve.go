@@ -19,9 +19,9 @@ func Resolve(specs []string, version string) ([]Asset, error) {
 		if err != nil || len(matches) == 0 {
 			return nil, fmt.Errorf("artifact %q matched no files", pattern)
 		}
-		for _, p := range matches {
-			n := strings.ReplaceAll(cmp.Or(name, filepath.Base(p)), "${version}", version)
-			assets = append(assets, Asset{Path: p, Name: n})
+		for _, file := range matches {
+			assetName := strings.ReplaceAll(cmp.Or(name, filepath.Base(file)), "${version}", version)
+			assets = append(assets, Asset{Path: file, Name: assetName})
 		}
 	}
 	return assets, nil

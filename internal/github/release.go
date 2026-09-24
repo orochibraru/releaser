@@ -27,15 +27,15 @@ func CreateRelease(repo, token, tag, body string, assets []artifacts.Asset, draf
 		return err
 	}
 	upload, _, _ := strings.Cut(rel.UploadURL, "{")
-	for _, a := range assets {
-		data, err := os.ReadFile(a.Path)
+	for _, asset := range assets {
+		data, err := os.ReadFile(asset.Path)
 		if err != nil {
 			return err
 		}
-		if err := post(upload+"?name="+url.QueryEscape(a.Name), token, "application/octet-stream", data, nil); err != nil {
+		if err := post(upload+"?name="+url.QueryEscape(asset.Name), token, "application/octet-stream", data, nil); err != nil {
 			return err
 		}
-		fmt.Println("uploaded", a.Name)
+		fmt.Println("uploaded", asset.Name)
 	}
 	if draft {
 		fmt.Println("created draft", rel.HTMLURL)
@@ -47,12 +47,12 @@ func CreateRelease(repo, token, tag, body string, assets []artifacts.Asset, draf
 
 func api() string { return cmp.Or(os.Getenv("GITHUB_API_URL"), "https://api.github.com") }
 
-func post(u, token, contentType string, body []byte, out any) error {
-	return send(http.MethodPost, u, token, contentType, body, out)
+func post(endpoint, token, contentType string, body []byte, out any) error {
+	return send(http.MethodPost, endpoint, token, contentType, body, out)
 }
 
-func send(method, u, token, contentType string, body []byte, out any) error {
-	req, err := http.NewRequest(method, u, bytes.NewReader(body))
+func send(method, endpoint, token, contentType string, body []byte, out any) error {
+	req, err := http.NewRequest(method, endpoint, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func send(method, u, token, contentType string, body []byte, out any) error {
 	defer res.Body.Close()
 	data, _ := io.ReadAll(res.Body)
 	if res.StatusCode >= 300 {
-		return fmt.Errorf("%s: %s: %s", u, res.Status, data)
+		return fmt.Errorf("%s: %s: %s", endpoint, res.Status, data)
 	}
 	if out != nil {
 		return json.Unmarshal(data, out)

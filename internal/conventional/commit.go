@@ -20,16 +20,16 @@ type Commit struct {
 // Parse returns false for commits that don't follow the convention.
 func Parse(hash, message string) (Commit, bool) {
 	header, body, _ := strings.Cut(strings.TrimSpace(message), "\n")
-	m := headerRe.FindStringSubmatch(header)
-	if m == nil {
+	match := headerRe.FindStringSubmatch(header)
+	if match == nil {
 		return Commit{}, false
 	}
-	c := Commit{Hash: hash, Type: strings.ToLower(m[1]), Scope: m[2], Subject: m[4], Breaking: m[3] == "!"}
-	if b := breakingRe.FindStringSubmatch(body); b != nil {
-		c.Breaking, c.BreakingNote = true, strings.TrimSpace(b[1])
+	commit := Commit{Hash: hash, Type: strings.ToLower(match[1]), Scope: match[2], Subject: match[4], Breaking: match[3] == "!"}
+	if footer := breakingRe.FindStringSubmatch(body); footer != nil {
+		commit.Breaking, commit.BreakingNote = true, strings.TrimSpace(footer[1])
 	}
-	if c.Breaking && c.BreakingNote == "" {
-		c.BreakingNote = c.Subject
+	if commit.Breaking && commit.BreakingNote == "" {
+		commit.BreakingNote = commit.Subject
 	}
-	return c, true
+	return commit, true
 }
