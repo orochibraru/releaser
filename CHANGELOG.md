@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.7.1](https://github.com/orochibraru/releaser/compare/v1.7.0...v1.7.1) (2026-09-24)
+
+### Bug Fixes
+
+* only tag a merged release PR at HEAD, so a refused stable run no longer blocks canaries and the release PR ([6b3c011](https://github.com/orochibraru/releaser/commit/6b3c011caf0164a042befb11d41f3461f2b9c4b0))
+
 ## [1.7.0](https://github.com/orochibraru/releaser/compare/v1.6.0...v1.7.0) (2026-09-23)
 
 ### Features
