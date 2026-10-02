@@ -1,5 +1,5 @@
 [tools]
-go = "1.24"
+go = "1.27.1"
 prek = "0.5.3"
 gotestsum = "1.13.0"
 
