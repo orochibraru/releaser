@@ -1,4 +1,6 @@
-# Run with prek: `prek install` once, then hooks run on every commit (`prek run --all-files` to run manually).
+# Run with prek: `prek install` once, then hooks run on every commit, go test on push (`prek run --all-files` to run manually).
+default_install_hook_types: [pre-commit, pre-push]
+
 repos:
   - repo: builtin
     hooks:
@@ -57,3 +59,4 @@ repos:
         language: system
         types: [go]
         pass_filenames: false
+        stages: [pre-push]

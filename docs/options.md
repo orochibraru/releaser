@@ -88,6 +88,12 @@ action or as a plain `run:` step:
 | `GITHUB_TOKEN` / `GH_TOKEN`           | GitHub release, uploads, release PR, ghcr.io.  |
 | `GITHUB_REF_NAME`                     | Current branch (falls back to `git`).          |
 | `GITHUB_REPOSITORY`                   | `owner/repo` (falls back to the `origin` URL). |
-| `GITHUB_SERVER_URL`, `GITHUB_API_URL` | GitHub Enterprise Server.                      |
+| `GITHUB_SERVER_URL`, `GITHUB_API_URL` | GitHub Enterprise Server, Gitea.               |
 | `GITHUB_ACTOR`                        | ghcr.io login username.                        |
 | `GITHUB_OUTPUT`                       | Where the outputs above are written.           |
+
+Gitea Actions sets these to the Gitea instance, and the release and the release
+PR go through endpoints Gitea shares with GitHub. Gitea's pull request list
+ignores the `head` and `base` filters, so releaser pages through the open pull
+requests and picks the one from this repository's release branch into `branch`
+itself. Artifact uploads are untested on Gitea.

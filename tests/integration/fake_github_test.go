@@ -52,13 +52,19 @@ func newFakeGitHub(test *testing.T) *fakeGitHub {
 		fake.mu.Unlock()
 		writer.WriteHeader(http.StatusCreated)
 	})
+	// Like Gitea, the stricter of the two: no head or base filter, every open pull request on page 1.
 	mux.HandleFunc("GET /repos/o/r/pulls", func(writer http.ResponseWriter, request *http.Request) {
 		query := request.URL.Query()
 		open := []map[string]any{}
 		fake.mu.Lock()
 		for index, pr := range fake.pulls {
-			if "o:"+fmt.Sprint(pr["head"]) == query.Get("head") && pr["base"] == query.Get("base") && pr["state"] == query.Get("state") {
-				open = append(open, map[string]any{"number": index + 1, "html_url": fake.URL + "/o/r/pull/" + fmt.Sprint(index+1)})
+			if pr["state"] == query.Get("state") && query.Get("page") == "1" {
+				open = append(open, map[string]any{
+					"number":   index + 1,
+					"html_url": fake.URL + "/o/r/pull/" + fmt.Sprint(index+1),
+					"head":     map[string]any{"ref": pr["head"], "repo": map[string]any{"full_name": "o/r"}},
+					"base":     map[string]any{"ref": pr["base"]},
+				})
 			}
 		}
 		fake.mu.Unlock()

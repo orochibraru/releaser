@@ -2,6 +2,7 @@ package unit
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -68,17 +69,74 @@ func TestUpsertPR(test *testing.T) {
 	if err != nil || url != "https://x/pull/1" {
 		test.Fatalf("create: %s %v", url, err)
 	}
-	open = `[{"number":7,"html_url":"https://x/pull/7"}]`
+	open = `[` + openPR(7, "releaser/release", "main", "o/r") + `]`
 	url, err = github.UpsertPR("o/r", "t", "releaser/release", "main", "chore(release): 1.1.0", "notes")
 	if err != nil || url != "https://x/pull/7" {
 		test.Fatalf("update: %s %v", url, err)
 	}
-	want := "GET /repos/o/r/pulls?base=main&head=o%3Areleaser%2Frelease&state=open," +
+	want := "GET /repos/o/r/pulls?base=main&head=o%3Areleaser%2Frelease&page=1&state=open," +
 		"POST /repos/o/r/pulls," +
-		"GET /repos/o/r/pulls?base=main&head=o%3Areleaser%2Frelease&state=open," +
+		"GET /repos/o/r/pulls?base=main&head=o%3Areleaser%2Frelease&page=1&state=open," +
 		"PATCH /repos/o/r/pulls/7"
 	if got := strings.Join(calls, ","); got != want {
 		test.Errorf("calls:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+// openPR is one entry of a pull request list, in the shape GitHub and Gitea share.
+func openPR(number int, head, base, repo string) string {
+	return fmt.Sprintf(`{"number":%d,"html_url":"https://x/pull/%d","head":{"ref":%q,"repo":{"full_name":%q}},"base":{"ref":%q}}`,
+		number, number, head, repo, base)
+}
+
+// Gitea ignores the head and base filters and pages through every open pull request: UpsertPR
+// skips the others (a fork's branch of the same name included) and finds its own on a later page.
+func TestUpsertPRAmongOthers(test *testing.T) {
+	pages := map[string]string{
+		"1": "[" + openPR(3, "feat/login", "main", "o/r") + "," +
+			openPR(4, "releaser/release", "main", "fork/r") + "," +
+			openPR(5, "releaser/release", "next", "o/r") + "]",
+		"2": "[" + openPR(9, "releaser/release", "main", "O/R") + "]",
+	}
+	var writes []string
+	gets := 0
+	api(test, func(writer http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodGet {
+			writes = append(writes, request.Method+" "+request.URL.Path)
+			writer.WriteHeader(http.StatusCreated)
+			writer.Write([]byte(`{"html_url":"https://x/pull/10"}`))
+			return
+		}
+		gets++
+		page, found := pages[request.URL.Query().Get("page")]
+		if !found {
+			page = "[]"
+		}
+		writer.Write([]byte(page))
+	})
+
+	url, err := github.UpsertPR("o/r", "t", "releaser/release", "main", "chore(release): 1.2.0", "notes")
+	if err != nil || url != "https://x/pull/9" || strings.Join(writes, ",") != "PATCH /repos/o/r/pulls/9" {
+		test.Fatalf("found on page 2: %s %v %v", url, err, writes)
+	}
+
+	delete(pages, "2")
+	writes = nil
+	url, err = github.UpsertPR("o/r", "t", "releaser/release", "main", "chore(release): 1.2.0", "notes")
+	if err != nil || url != "https://x/pull/10" || strings.Join(writes, ",") != "POST /repos/o/r/pulls" {
+		test.Fatalf("none of them: %s %v %v", url, err, writes)
+	}
+
+	pages = map[string]string{}
+	for page := 1; page <= 25; page++ {
+		pages[fmt.Sprint(page)] = "[" + openPR(3, "feat/login", "main", "o/r") + "]"
+	}
+	gets, writes = 0, nil
+	if _, err := github.UpsertPR("o/r", "t", "releaser/release", "main", "chore(release): 1.2.0", "notes"); err != nil {
+		test.Fatal(err)
+	}
+	if gets != 20 || strings.Join(writes, ",") != "POST /repos/o/r/pulls" {
+		test.Errorf("endless pages: %d GETs, %v", gets, writes)
 	}
 }
 

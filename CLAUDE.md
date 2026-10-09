@@ -49,8 +49,8 @@ what's inside. Don't collapse into fewer files.
 
 - `mise install` (go and prek, pinned in `mise.toml`), `prek install`, then
   hooks run on commit: gofmt, no single-letter names, `go mod tidy -diff`, go
-  vet, `go test -short ./...`, prettier and markdownlint on Markdown, pinact on
-  workflows.
+  vet, prettier and markdownlint on Markdown, pinact on workflows; on push:
+  `go test -short ./...`.
 - `go test ./...` is the full suite. Integration tests build the binary and
   release throwaway repos into local bare remotes, with a fake GitHub API
   (`fake_github_test.go`) and, for Docker, a `registry:3` container. Every
