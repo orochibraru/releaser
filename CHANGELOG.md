@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.7.2](https://github.com/orochibraru/releaser/compare/v1.7.1...v1.7.2) (2026-10-09)
+
+### Bug Fixes
+
+* find the release PR on Gitea, whose pull list ignores the head and base filters ([dbfa11c](https://github.com/orochibraru/releaser/commit/dbfa11ccd2a5335553afbd85476d006dfe2940c2))
+
 ## [1.7.1](https://github.com/orochibraru/releaser/compare/v1.7.0...v1.7.1) (2026-09-24)
 
 ### Bug Fixes
