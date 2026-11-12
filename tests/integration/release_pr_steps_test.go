@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/orochibraru/releaser/internal/changelog"
+	"github.com/zedensix/releaser/internal/changelog"
 )
 
 // Trunk-based: every push to main ships a canary and refreshes the release PR; merging the PR

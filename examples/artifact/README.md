@@ -19,7 +19,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
-      - uses: orochibraru/releaser@v1
+      - uses: zedensix/releaser@v1
         with:
           prepare: ./build.sh ${version}
           artifacts: dist/hello.tar.gz=hello-${version}.tar.gz

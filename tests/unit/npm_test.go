@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/orochibraru/releaser/internal/npm"
+	"github.com/zedensix/releaser/internal/npm"
 )
 
 func TestSetVersion(test *testing.T) {

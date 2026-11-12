@@ -3,8 +3,8 @@ package unit
 import (
 	"testing"
 
-	"github.com/orochibraru/releaser/internal/conventional"
-	"github.com/orochibraru/releaser/internal/semver"
+	"github.com/zedensix/releaser/internal/conventional"
+	"github.com/zedensix/releaser/internal/semver"
 )
 
 func TestLatest(test *testing.T) {

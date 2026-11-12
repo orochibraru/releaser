@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/orochibraru/releaser/internal/artifacts"
+	"github.com/zedensix/releaser/internal/artifacts"
 )
 
 func TestResolve(test *testing.T) {

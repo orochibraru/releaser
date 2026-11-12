@@ -10,14 +10,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/orochibraru/releaser/internal/artifacts"
-	"github.com/orochibraru/releaser/internal/changelog"
-	"github.com/orochibraru/releaser/internal/conventional"
-	"github.com/orochibraru/releaser/internal/docker"
-	"github.com/orochibraru/releaser/internal/git"
-	"github.com/orochibraru/releaser/internal/github"
-	"github.com/orochibraru/releaser/internal/npm"
-	"github.com/orochibraru/releaser/internal/semver"
+	"github.com/zedensix/releaser/internal/artifacts"
+	"github.com/zedensix/releaser/internal/changelog"
+	"github.com/zedensix/releaser/internal/conventional"
+	"github.com/zedensix/releaser/internal/docker"
+	"github.com/zedensix/releaser/internal/git"
+	"github.com/zedensix/releaser/internal/github"
+	"github.com/zedensix/releaser/internal/npm"
+	"github.com/zedensix/releaser/internal/semver"
 )
 
 // releaseBranch is the head branch of the release PR.

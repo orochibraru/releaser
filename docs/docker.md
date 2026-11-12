@@ -11,7 +11,7 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v7
-      - uses: orochibraru/releaser@v1
+      - uses: zedensix/releaser@v1
         with:
           docker: true
 ```
@@ -46,7 +46,7 @@ any other registry, set `docker-image` and log in first:
   with:
     username: ${{ vars.DOCKERHUB_USERNAME }}
     password: ${{ secrets.DOCKERHUB_TOKEN }}
-- uses: orochibraru/releaser@v1
+- uses: zedensix/releaser@v1
   with:
     docker: true
     docker-image: docker.io/me/app
@@ -59,7 +59,7 @@ Multi-platform builds need QEMU and a buildx builder:
 ```yaml
 - uses: docker/setup-qemu-action@v4
 - uses: docker/setup-buildx-action@v4
-- uses: orochibraru/releaser@v1
+- uses: zedensix/releaser@v1
   with:
     docker: true
     docker-platforms: linux/amd64,linux/arm64

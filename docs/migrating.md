@@ -67,7 +67,7 @@ This `.releaserc.json`:
 becomes:
 
 ```yaml
-- uses: orochibraru/releaser@v1
+- uses: zedensix/releaser@v1
   with:
     rules: breaking=patch,feat=patch,docs=patch,refactor=patch
     prepare: bun scripts/bump-version.ts ${version} && bun run package:extension

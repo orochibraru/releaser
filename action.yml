@@ -1,6 +1,6 @@
 name: Releaser
 description: semantic-release without the plugins. Version, CHANGELOG, tag, GitHub release, artifacts and Docker image.
-author: orochibraru
+author: zedensix
 branding:
   icon: tag
   color: purple
@@ -90,7 +90,7 @@ runs:
         os=$(tr '[:upper:]' '[:lower:]' <<< "$RUNNER_OS"); [ "$os" = macos ] && os=darwin
         arch=$(tr '[:upper:]' '[:lower:]' <<< "$RUNNER_ARCH"); [ "$arch" = x64 ] && arch=amd64
         bin="$RUNNER_TEMP/releaser"
-        url="https://github.com/orochibraru/releaser/releases/download/v$RELEASER_VERSION/releaser-$os-$arch"
+        url="https://github.com/zedensix/releaser/releases/download/v$RELEASER_VERSION/releaser-$os-$arch"
         sum="RELEASER_SHA256_$(tr a-z A-Z <<< "${os}_$arch")"
         # A release asset can be replaced; action.yml at the pinned ref can't. Anything unverified is rebuilt.
         if ! { curl -fsSL -o "$bin" "$url" && echo "${!sum:-}  $bin" | shasum -a 256 -c --status 2>/dev/null; }; then

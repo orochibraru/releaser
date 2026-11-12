@@ -21,7 +21,7 @@ jobs:
         with:
           ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }} # see "Checks on the PR"
       - id: release
-        uses: orochibraru/releaser@v1
+        uses: zedensix/releaser@v1
         with:
           prerelease: canary
           release-pr: true
@@ -155,7 +155,7 @@ Rows 1 and 3 look the same. Tell them apart by the subject of the pushed commit:
 
 ```yaml
 - id: next
-  uses: orochibraru/releaser@v1
+  uses: zedensix/releaser@v1
   with:
     prerelease: canary
     release-pr: true

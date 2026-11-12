@@ -3,7 +3,7 @@
 Attach build outputs to the GitHub release.
 
 ```yaml
-- uses: orochibraru/releaser@v1
+- uses: zedensix/releaser@v1
   with:
     prepare: bun run build
     artifacts: |

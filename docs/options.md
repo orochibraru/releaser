@@ -3,7 +3,7 @@
 Every action input maps to a CLI flag of the same name.
 
 ```yaml
-- uses: orochibraru/releaser@v1
+- uses: zedensix/releaser@v1
   with:
     branch: main
     rules: ""
@@ -54,7 +54,7 @@ Every action input maps to a CLI flag of the same name.
 
 ```yaml
 - id: release
-  uses: orochibraru/releaser@v1
+  uses: zedensix/releaser@v1
 - if: steps.release.outputs.released == 'true'
   run: echo "shipped ${{ steps.release.outputs.tag }}"
 ```
@@ -66,7 +66,7 @@ images or binaries with the upcoming version before the real release:
 
 ```yaml
 - id: next
-  uses: orochibraru/releaser@v1
+  uses: zedensix/releaser@v1
   with:
     dry-run: true
 # steps.next.outputs.version: the upcoming version, empty if nothing to release

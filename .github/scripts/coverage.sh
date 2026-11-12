@@ -18,7 +18,7 @@ RELEASER_COVERDIR="$dir/data" $run -count=1 "$@" -coverpkg=./cmd/...,./internal/
 	-args -test.gocoverdir="$dir/data"
 
 go tool covdata textfmt -i="$dir/data" -o "$dir/profile.out"
-strip='s|github.com/orochibraru/releaser/||'
+strip='s|github.com/zedensix/releaser/||'
 echo
 go tool covdata percent -i="$dir/data" | sed "$strip"
 echo

@@ -3,7 +3,7 @@ package unit
 import (
 	"testing"
 
-	"github.com/orochibraru/releaser/internal/conventional"
+	"github.com/zedensix/releaser/internal/conventional"
 )
 
 func TestParse(test *testing.T) {

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/orochibraru/releaser/internal/changelog"
-	"github.com/orochibraru/releaser/internal/conventional"
+	"github.com/zedensix/releaser/internal/changelog"
+	"github.com/zedensix/releaser/internal/conventional"
 )
 
 func TestNotes(test *testing.T) {

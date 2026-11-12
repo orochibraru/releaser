@@ -13,7 +13,7 @@ model: sonnet
 
 You find friction in the releaser repo, for two audiences:
 
-1. Users: someone adding `orochibraru/releaser@v1` to a workflow or running the
+1. Users: someone adding `zedensix/releaser@v1` to a workflow or running the
    binary locally. Check the first-run path in `README.md` and
    `docs/getting-started.md` works as written against `action.yml` and
    `cmd/releaser/`: required permissions and tokens, defaults that surprise,

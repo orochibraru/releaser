@@ -33,7 +33,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
-      - uses: orochibraru/releaser@v1
+      - uses: zedensix/releaser@v1
 ```
 
 That's it. On the next push with a `feat` or `fix` commit you get:
@@ -47,7 +47,7 @@ The first release is always `1.0.0`. Shallow clones are fetched in full
 automatically, so `fetch-depth: 0` is optional.
 
 `@v1` follows the latest 1.x. To pin, use a release commit's SHA
-(`orochibraru/releaser@<sha> # vX.Y.Z`): `action.yml` at that commit pins the
+(`zedensix/releaser@<sha> # vX.Y.Z`): `action.yml` at that commit pins the
 binary's version and checksum too.
 
 ## 3. Protected branches
@@ -65,7 +65,7 @@ out with a credential the ruleset lets through. A deploy key is the narrowest:
 - uses: actions/checkout@v7
   with:
     ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
-- uses: orochibraru/releaser@v1
+- uses: zedensix/releaser@v1
 ```
 
 A PAT or GitHub App token (`token:` on both steps) works too, but only if its
@@ -76,12 +76,12 @@ further than one repo's key. Pushes over either one trigger workflows, unlike
 ## 4. Try it locally
 
 ```bash
-go install github.com/orochibraru/releaser/cmd/releaser@latest
+go install github.com/zedensix/releaser/cmd/releaser@latest
 releaser
 ```
 
 Or download `releaser-<os>-<arch>` from the
-[latest release](https://github.com/orochibraru/releaser/releases/latest).
+[latest release](https://github.com/zedensix/releaser/releases/latest).
 
 Outside CI (`CI` unset) it's a dry run: it prints the next version and its notes
 and touches nothing. Pass `-dry-run=false` to really release. Only `branch`

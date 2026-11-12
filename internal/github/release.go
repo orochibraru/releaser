@@ -12,7 +12,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/orochibraru/releaser/internal/artifacts"
+	"github.com/zedensix/releaser/internal/artifacts"
 )
 
 // CreateRelease publishes a release for tag (or creates it as a draft) and uploads assets to it.

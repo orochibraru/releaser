@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/orochibraru/releaser/internal/conventional"
+	"github.com/zedensix/releaser/internal/conventional"
 )
 
 type Version [3]int

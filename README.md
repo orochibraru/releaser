@@ -23,7 +23,7 @@ jobs:
       packages: write # docker mode only
     steps:
       - uses: actions/checkout@v7
-      - uses: orochibraru/releaser@v1
+      - uses: zedensix/releaser@v1
         with: # all optional
           prepare: ./build.sh ${version} # builds dist/app.zip
           artifacts: dist/app.zip=app-${version}.zip

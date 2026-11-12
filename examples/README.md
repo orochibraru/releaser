@@ -5,7 +5,7 @@ the whole recipe: bump the manifest (if the language has one), build, and leave
 the artifact in `dist/`. `package.json` is bumped by releaser itself.
 
 ```yaml
-- uses: orochibraru/releaser@v1
+- uses: zedensix/releaser@v1
   with:
     prepare: ./build.sh ${version}
     artifacts: <artifacts>

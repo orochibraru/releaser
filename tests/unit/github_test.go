@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/orochibraru/releaser/internal/artifacts"
-	"github.com/orochibraru/releaser/internal/github"
+	"github.com/zedensix/releaser/internal/artifacts"
+	"github.com/zedensix/releaser/internal/github"
 )
 
 // api serves handler as GITHUB_API_URL for the test.

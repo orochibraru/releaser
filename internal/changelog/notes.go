@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/orochibraru/releaser/internal/conventional"
+	"github.com/zedensix/releaser/internal/conventional"
 )
 
 var sections = []struct{ typ, title string }{
