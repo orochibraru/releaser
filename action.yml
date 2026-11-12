@@ -67,7 +67,7 @@ runs:
       shell: bash
       env:
         # Bumped by this repo's own release (see .github/workflows/ci.yml), with the SHA-256 of each binary.
-        RELEASER_VERSION: "1.7.3"
+        RELEASER_VERSION: "1.7.4"
         RELEASER_SHA256_LINUX_AMD64: "83b18233405c024be545763fdf3626ab8416a3427c493c8fd2ba3a01325460d4"
         RELEASER_SHA256_LINUX_ARM64: "91f66ac315be3bd91a3f7f8abc63e7e097b7338a7ff10f3da41fc827d1eefc88"
         RELEASER_SHA256_DARWIN_AMD64: "7595dc20643fdbc4ee87cb6234966d354c58ada0d006377b1027e3a5d82079e8"
