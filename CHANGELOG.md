@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.7.4](https://github.com/zedensix/releaser/compare/v1.7.3...v1.7.4) (2026-11-12)
+
+### Bug Fixes
+
+* docs & ref (oro to zn6) ([8c5c2c1](https://github.com/zedensix/releaser/commit/8c5c2c178e133f0144f51558d715c71459c56478))
+
 ## [1.7.3](https://github.com/zedensix/releaser/compare/v1.7.2...v1.7.3) (2026-11-12)
 
 ### Bug Fixes
