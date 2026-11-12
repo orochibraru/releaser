@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.7.3](https://github.com/zedensix/releaser/compare/v1.7.2...v1.7.3) (2026-11-12)
+
+### Bug Fixes
+
+* move releaser to zedensix (Go module and binary download URL) ([692ab1d](https://github.com/zedensix/releaser/commit/692ab1d7edcb47233e2bf4877fd75f106544e801))
+
 ## [1.7.2](https://github.com/orochibraru/releaser/compare/v1.7.1...v1.7.2) (2026-10-09)
 
 ### Bug Fixes
